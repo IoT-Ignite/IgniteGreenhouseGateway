@@ -1,0 +1,36 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 26
+    buildToolsVersion "26.0.0"
+    defaultConfig {
+        applicationId "com.ardic.android.ignitegreenhouse"
+        minSdkVersion 21
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url "http://repo.maven.apache.org/maven2"
+    }
+    maven {
+        url "https://repo.iot-ignite.com/content/repositories/releases"
+    }
+}
+
+dependencies {
+    provided 'com.google.android.things:androidthings:0.4-devpreview'
+    compile 'com.google.code.gson:gson:2.7'
+    compile 'com.ardic.android:IoTIgnite:0.7'
+}
