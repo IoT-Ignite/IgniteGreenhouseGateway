@@ -1,9 +1,11 @@
-package com.ardic.android.ignitegreenhouse;
+package com.ardic.android.ignitegreenhouse.broadcast;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
+
+import com.ardic.android.ignitegreenhouse.activities.MainActivity;
 
 /**
  * Created by dorukgezici on 22/06/2017.
