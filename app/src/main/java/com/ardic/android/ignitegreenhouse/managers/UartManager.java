@@ -1,18 +1,16 @@
 package com.ardic.android.ignitegreenhouse.managers;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Handler;
-import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
 import com.google.android.things.pio.PeripheralManagerService;
 import com.google.android.things.pio.UartDevice;
 import com.google.android.things.pio.UartDeviceCallback;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 
@@ -23,27 +21,33 @@ import java.io.IOException;
 public class UartManager {
 
     private static final String TAG = UartManager.class.getSimpleName();
+
     private UartDevice mUartDevice;
     private PeripheralManagerService peripheralManagerService = new PeripheralManagerService();
 
-    // UART Configuration Parameters
+    /** UART Configuration Parameters*/
     private static final int BAUD_RATE = 4800;
     private static final int DATA_BITS = 8;
     private static final int STOP_BITS = 1;
-    private static final int CHUNK_SIZE = 5;
-    private static String DEVICE_RPI3 = "UART0";
-    private static final String REGEXP = "[0-9]+.+[0-9]";
+    private static final int CHUNK_SIZE = 35;
+    private static final String DEVICE_RPI3 = "UART0";
+    //
+    // private static final String REGEXP_VALUE = "[0-9]+.+[0-9]";
+    // private static final String REGEXP2 = "\"id\":[0-9a-fA-F]+,\"val\":[0-9]++";
+    private static final String REGEXP_ID = "[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]";
 
-    private String temperatureReadBuffer;
-    private String getTemperatureMessage = "Temperature: ";
+    private static final String GET_ID_STRING = "id";
+    private static final String GET_VALUE_STRING = "val";
+    private static final String GET_BEGIN_CHARACTER="~##";
+    private static final String GET_END_CHARACTER="!!~";
 
-    private Context mContext;
-
-    private long getDelayTimeData = 10000L;
     private Handler sendDataHandler = new Handler();
 
     private boolean getUartFlag = false;
 
+     private DataManager mDataManager;
+
+    private long getSendDataTime = 2000L;
     /**
      * To send a data cloud to the configuration without
      */
@@ -54,21 +58,11 @@ public class UartManager {
                 transferUartData();
                 getUartFlag = false;
             }
-            sendDataHandler.postDelayed(this, getDelayTimeData);
+            sendDataHandler.postDelayed(this, getSendDataTime);
 
         }
     };
 
-    /**
-     * Receive cloud configuration data
-     */
-    private BroadcastReceiver getIgniteConfig = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            getDelayTimeData = intent.getLongExtra("getConfig", 10000L);
-            Log.i(TAG, "Get Config : " + getDelayTimeData + " sec");
-        }
-    };
 
 
     /**
@@ -97,9 +91,7 @@ public class UartManager {
     public UartManager(Context context) {
         Log.i(TAG, "UartManager Open .");
         if (context != null) {
-            mContext = context;
-            LocalBroadcastManager.getInstance(mContext).registerReceiver(getIgniteConfig,
-                    new IntentFilter("getConfig"));
+            mDataManager= new DataManager(context);
             if (sendDataRunnable != null) {
                 sendDataHandler.post(sendDataRunnable);
             }
@@ -123,7 +115,8 @@ public class UartManager {
      */
     private void openUart(String name, int baudRate) throws IOException {
         mUartDevice = peripheralManagerService.openUartDevice(name);
-        // Configure the UART
+
+        /** Configure the UART*/
         mUartDevice.setBaudrate(baudRate);
         mUartDevice.setDataSize(DATA_BITS);
         mUartDevice.setParity(UartDevice.PARITY_NONE);
@@ -134,7 +127,7 @@ public class UartManager {
     /**
      * Close the UART device connection, if it exists
      */
-    private void closeUart() throws IOException {
+    public void closeUart() throws IOException {
         if (mUartDevice != null) {
             mUartDevice.unregisterUartDeviceCallback(getUartCallback);
             try {
@@ -151,7 +144,7 @@ public class UartManager {
      * <p>
      * Potentially long-running operation. Call from a worker thread.
      */
-    private void transferUartData() {
+    public void transferUartData() {
         if (mUartDevice != null) {
             // Loop until there is no more data in the RX buffer.
             try {
@@ -159,20 +152,39 @@ public class UartManager {
                 int read;
                 while ((read = mUartDevice.read(buffer, buffer.length)) == CHUNK_SIZE) {
                     mUartDevice.write(buffer, read);
-                    temperatureReadBuffer = new String(buffer);
-                    getTemperatureMessage = "Temperature: " + temperatureReadBuffer + " °C";
 
-                    if (!TextUtils.isEmpty(temperatureReadBuffer) && temperatureReadBuffer.matches(REGEXP)) {
-                        Log.i(TAG, "Get Temperature : " + temperatureReadBuffer);
-                        if (IotIgniteHandler.getInstance(mContext).sendData(Float.parseFloat(temperatureReadBuffer))) {
-                            Log.i(TAG, "Send Data : OK");
-                        } else {
-                            Log.e(TAG, "Send Data : NO");
+                    String incomingData = new String(buffer);
+                    String controlComingData = null;
+
+                    int beginCharacterIndex = incomingData.indexOf(GET_BEGIN_CHARACTER);
+                    int endCharacterIndex = incomingData.indexOf(GET_END_CHARACTER);
+
+                    if (incomingData.contains(GET_BEGIN_CHARACTER) && incomingData.contains(GET_END_CHARACTER)) {
+                        if (beginCharacterIndex < endCharacterIndex) {
+                            controlComingData = incomingData.substring(beginCharacterIndex + 3, endCharacterIndex);
+                        }
+                    }
+                    if (controlComingData != null) {
+                        try {
+                            JSONObject mDataObject = new JSONObject(controlComingData);
+                            String getSensorId = null;
+                            String getSensorValue = null;
+
+                            if (mDataObject != null && mDataObject.has(GET_ID_STRING) && mDataObject.has(GET_VALUE_STRING)) {
+                                getSensorId = mDataObject.getString(GET_ID_STRING);
+                                getSensorValue = mDataObject.getString(GET_VALUE_STRING);
+
+                                if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(REGEXP_ID)) {
+                                    mDataManager.getData(getSensorId,getSensorValue);
+                                }
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
                         }
                     }
                 }
-            } catch (IOException e) {
-                Log.w(TAG, "Unable to transfer data over UART", e);
+            } catch (IOException e1) {
+                e1.printStackTrace();
             }
         }
     }

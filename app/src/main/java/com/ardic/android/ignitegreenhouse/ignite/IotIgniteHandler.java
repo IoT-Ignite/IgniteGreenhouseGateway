@@ -42,6 +42,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
     private Intent getConfIntent=new Intent("getConfig");
     private Intent intents = new Intent("igniteConnect");
 
+    // TODO : Thing type ID ye göre
     private ThingType mUartThingType = new ThingType(
             /** Define Type of your Thing */
             "Uart Thing",
@@ -87,16 +88,13 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
         startIgniteWatchdog();
     }
 
+    /**
+     * Send Data IoT - Ignite
+     */
     public boolean sendData(float temperature) {
-
         if (igniteConnected && mUartThing != null && mUartThing.isRegistered()) {
             ThingData data = new ThingData();
             data.addData(temperature);
-
-            //TODO : Başka yerde al
-            getConfIntent.putExtra("getConfig", mUartThing.getThingConfiguration().getDataReadingFrequency());
-            LocalBroadcastManager.getInstance(appContext).sendBroadcast(getConfIntent);
-
             return mUartThing.sendData(data);
         }
         return false;
@@ -114,17 +112,22 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
 
             intents.putExtra("igniteStatus", true);
             LocalBroadcastManager.getInstance(appContext).sendBroadcast(intents);
+
+            getConfIntent.putExtra("getConfig", mUartThing.getThingConfiguration().getDataReadingFrequency());
+            LocalBroadcastManager.getInstance(appContext).sendBroadcast(getConfIntent);
+            Log.e(TAG,"Frequans : "+ mUartThing.getThingConfiguration().getDataReadingFrequency());
         }
     }
 
+    //TODO : Node ID Cloud verisi olarak gelecek
     private boolean registerNodeIfNotRegistered() {
         Log.i(TAG, "Creating Node: " + NODE_ID);
         mUartNode = IotIgniteManager.NodeFactory.createNode(
-                /*Unique ID of Node*/
+                /**Unique ID of Node*/
                 NODE_ID,
-                /* Node label may be unique. */
+                /** Node label may be unique. */
                 NODE_ID,
-                /*Node Type is definition for node. If your node is a physical device, you can state it here.
+                /**Node Type is definition for node. If your node is a physical device, you can state it here.
                 * Supported Node Types
                 * GENERIC : Default node type. If you do not want to do type based things, this will work for you.
                 * RASPBERRY_PI: Defines node as a Raspberry Pi.
@@ -133,7 +136,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                 NodeType.GENERIC,
                 /** Reserved for later use. Pass null for now.*/
                 null,
-                /*Node Listener : Callback for node unregistration. Nodes can be unregistered from enterprise.iot-ignite.com remotely.
+                /**Node Listener : Callback for node unregistration. Nodes can be unregistered from enterprise.iot-ignite.com remotely.
                 * If your node is unregistered from there but not by your code, will receive a callback here. */
                 this
         );
@@ -173,13 +176,13 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
          */
 
         if (mUartNode != null && mUartNode.isRegistered()) {
-
+//TODO : Thing ID Etiket numarasına göre verilecek
             mUartThing = mUartNode.createThing(
 
-                    /*Thing ID : Must be unique*/
+                    /**Thing ID : Must be unique*/
                     THING_ID,
 
-                    /*Define your thing type here. Use ThingType object.
+                    /**Define your thing type here. Use ThingType object.
                     * Thing Type objects give information about what type of sensor/actuator you are using.*/
                     mUartThingType,
 

@@ -28,6 +28,7 @@ public class MainService extends Service {
     /**
      *It takes the "connect" method broadcast from "IoT - Ignite".
      * If "IoT - Ignite" status is "Connect", it initiates "Uart" operations.
+     * If "IoT - Ignite" status is "Connect", it initiates "Uart" operations.
      */
     private BroadcastReceiver igniteStatusMessage = new BroadcastReceiver() {
         @Override
@@ -65,5 +66,15 @@ public class MainService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         return START_STICKY;
+    }
+
+    @Override
+    public void onDestroy() {
+        try {
+            mUartManager.closeUart();
+        } catch (IOException e) {
+            Log.e(TAG,"Uart close error!");
+        }
+        super.onDestroy();
     }
 }
