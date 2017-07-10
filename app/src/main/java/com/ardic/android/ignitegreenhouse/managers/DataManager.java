@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.ardic.android.ignitegreenhouse.configuration.Configuration;
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
 
 /**
@@ -33,7 +34,6 @@ public class DataManager {
             if (getDataFlag){
                 getDataFlag=false;
                 sendDataIgnite();
-
             }
             sendDataHandler.postDelayed(sendDataRunnable,getDelayTimeData);
         }
@@ -65,11 +65,19 @@ public class DataManager {
             this.getValue = getValue;
             Log.i(TAG, "Get Id : " + getDeviceId
                     + "\nGet Value : " + getValue);
-            
-            mThreadManager.getData(getDeviceId,getValue,getDelayTimeData);
-            mThreadManager.run();
+
+           //TODO : THread Manager SOnraki adım
+            /// / mThreadManager.getData(getDeviceId,getValue,getDelayTimeData);
+            //mThreadManager.run();
+
+            // Todo : COntrol DEvice
+
+            if (Configuration.getInstance(mContext).matchDevice(getDeviceId)){
+
+            }
         }
     }
+    //TODO : Burada unutma
 
     private void sendDataIgnite(){
         if (IotIgniteHandler.getInstance(mContext).sendData(Float.parseFloat(getValue))) {
@@ -78,6 +86,7 @@ public class DataManager {
             Log.e(TAG, "Send Data : NO");
         }
     }
+
 
 
 }

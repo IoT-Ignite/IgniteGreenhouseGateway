@@ -48,6 +48,7 @@ public class MainService extends Service {
     };
 
     public MainService() {
+
     }
 
     @Override

@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.ardic.android.ignitegreenhouse.configuration.Configuration;
 import com.ardic.android.iotignite.callbacks.ConnectionCallback;
 import com.ardic.android.iotignite.enumerations.NodeType;
 import com.ardic.android.iotignite.enumerations.ThingCategory;
@@ -31,6 +32,9 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
     private static final String NODE_ID = "WeMos D1";
     private static final String THING_ID = "LM-35 Temperature";
 
+    private static final String CONFIG_NODE_ID = "Configurator";
+    private static final String CONFIG_THING_ID = "Configurator Thing";
+
     private IotIgniteManager mIotIgniteManager;
     private boolean igniteConnected = false;
     private Context appContext;
@@ -39,8 +43,28 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
     private Node mUartNode;
     private Thing mUartThing;
 
+    private Node mConfiguratorNode;
+    private Thing mConfiguratorThing;
+
     private Intent getConfIntent=new Intent("getConfig");
     private Intent intents = new Intent("igniteConnect");
+
+    private ThingType mConfiguratorThingType = new ThingType(
+            /** Define Type of your Thing */
+            "Configuration Thing",
+
+            /** Set your things vendor. It's useful if you are using real sensors
+             * This is important for separating identical sensors manufactured by different vendors.
+             * For example accelerometer sensor produced by Bosch data sampling is
+             * different than Samsung's.*/
+            "Seratonin Thing",
+
+            /** Set thing data type.
+             */
+            ThingDataType.STRING
+    );
+
+
 
     // TODO : Thing type ID ye göre
     private ThingType mUartThingType = new ThingType(
@@ -57,6 +81,8 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
              */
             ThingDataType.FLOAT
     );
+
+
 
     private Runnable igniteWatchdogRunnable = new Runnable() {
         @Override
@@ -107,8 +133,22 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
         igniteWatchdog.removeCallbacks(igniteWatchdogRunnable);
         igniteConnected = true;
 
-        if (registerNodeIfNotRegistered() && registerThingIfNotRegistered()) {
-            Log.i(TAG, "Ignite Send Broadcast (onConnected)");
+        intents.putExtra("igniteStatus", true);
+        LocalBroadcastManager.getInstance(appContext).sendBroadcast(intents);
+        Log.i(TAG, "Ignite Send Broadcast (onConnected)");
+
+        if (registerConfiguratorNode() && registerConfiguratorThing()){
+            Log.i(TAG,"Configurator Node and Configurator Thing Created");
+        }
+
+
+        // TODO : Config static bir fonksiyondan sensöre göre alıancak
+        //getConfIntent.putExtra("getConfig", mUartThing.getThingConfiguration().getDataReadingFrequency());
+       // LocalBroadcastManager.getInstance(appContext).sendBroadcast(getConfIntent);
+
+
+        /*if (registerNodeIfNotRegistered() && registerThingIfNotRegistered()) {
+
 
             intents.putExtra("igniteStatus", true);
             LocalBroadcastManager.getInstance(appContext).sendBroadcast(intents);
@@ -116,8 +156,86 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
             getConfIntent.putExtra("getConfig", mUartThing.getThingConfiguration().getDataReadingFrequency());
             LocalBroadcastManager.getInstance(appContext).sendBroadcast(getConfIntent);
             Log.e(TAG,"Frequans : "+ mUartThing.getThingConfiguration().getDataReadingFrequency());
-        }
+        }*/
     }
+
+
+
+
+
+
+    /**
+     * Configurator Node
+     */
+    private boolean registerConfiguratorNode(){
+        mConfiguratorNode =IotIgniteManager.NodeFactory.createNode(
+                CONFIG_NODE_ID,
+                CONFIG_NODE_ID,
+                NodeType.GENERIC,
+                null,
+                this
+        );
+
+        if (mConfiguratorNode !=null){
+            Log.i(TAG, mConfiguratorNode.getNodeID() + " created.");
+            Log.i(TAG, mConfiguratorNode.getNodeID() + " is registering...");
+
+            if (mConfiguratorNode.isRegistered() || mConfiguratorNode.register()) {
+
+                /**
+                 * Register node here. If registration is successful, make it online.
+                 */
+
+                Log.i(TAG, mConfiguratorNode.getNodeID() + " is registered successfully. Setting connection true");
+                mConfiguratorNode.setConnected(true, "");
+                return true;
+            }
+
+        }
+        return false;
+    }
+
+    /**
+     * Configurator Thing
+     */
+    private boolean registerConfiguratorThing(){
+        if (mConfiguratorNode != null && mConfiguratorNode.isRegistered()) {
+            mConfiguratorThing = mConfiguratorNode.createThing(
+                    CONFIG_THING_ID,
+                    mConfiguratorThingType,
+                    ThingCategory.EXTERNAL,
+                    true,
+                    this,
+                    null
+            );
+        }
+
+        if (mConfiguratorThing !=null){
+            Log.i(TAG,"Creating Thing ");
+
+            if (mConfiguratorThing.isRegistered() || mConfiguratorThing.register()) {
+                Log.i(TAG, "Thing[" + mConfiguratorThing.getThingID() + "]  is registered.");
+                mConfiguratorThing.setConnected(true, "");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean sendConfiguratorThingMessage(String sendMessage){
+        if (igniteConnected && mConfiguratorThing != null && mConfiguratorThing.isRegistered()) {
+            ThingData data = new ThingData();
+            data.addData(sendMessage);
+            return mConfiguratorThing.sendData(data);
+        }
+        return false;
+    }
+
+
+
+
+
+
 
     //TODO : Node ID Cloud verisi olarak gelecek
     private boolean registerNodeIfNotRegistered() {
@@ -184,6 +302,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
 
                     /**Define your thing type here. Use ThingType object.
                     * Thing Type objects give information about what type of sensor/actuator you are using.*/
+
                     mUartThingType,
 
                     /** You can categorize your thing. EXTERNAL, BUILTIN or UNDEFINED */
@@ -297,11 +416,14 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
 
     @Override
     public void onActionReceived(String s, String s1, ThingActionData thingActionData) {
-
         /**
          * Thing action message will be handled here. Call thingActionData.getMessage()
          */
-
+        //TODO : Configuration a gönderilecek
+        Configuration.getInstance(appContext).receivedConfigMessage(s,s1,thingActionData.getMessage());
+        Log.i(TAG,"Action Node : "+s);
+        Log.i(TAG,"Action Thing : "+s1);
+        Log.i(TAG,"Action Message : "+thingActionData.getMessage());
     }
 
     @Override
@@ -312,4 +434,6 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
          * information callback.
          */
     }
+
+
 }

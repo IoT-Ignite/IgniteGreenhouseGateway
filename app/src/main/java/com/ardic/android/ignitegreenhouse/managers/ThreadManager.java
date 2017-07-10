@@ -33,7 +33,6 @@ public class ThreadManager extends Thread {
         this.getDelayTime=getDelayTime;
     }
 
-
     @Override
     public void run() {
         super.run();

@@ -47,7 +47,7 @@ public class UartManager {
 
      private DataManager mDataManager;
 
-    private long getSendDataTime = 2000L;
+    private long getSendDataTime = 3000L;
     /**
      * To send a data cloud to the configuration without
      */
@@ -152,20 +152,24 @@ public class UartManager {
                 int read;
                 while ((read = mUartDevice.read(buffer, buffer.length)) == CHUNK_SIZE) {
                     mUartDevice.write(buffer, read);
-
+                    /** Read Data */
                     String incomingData = new String(buffer);
                     String controlComingData = null;
 
+                    /** For Control True Data*/
                     int beginCharacterIndex = incomingData.indexOf(GET_BEGIN_CHARACTER);
                     int endCharacterIndex = incomingData.indexOf(GET_END_CHARACTER);
 
                     if (incomingData.contains(GET_BEGIN_CHARACTER) && incomingData.contains(GET_END_CHARACTER)) {
                         if (beginCharacterIndex < endCharacterIndex) {
+                            /** Split */
                             controlComingData = incomingData.substring(beginCharacterIndex + 3, endCharacterIndex);
                         }
                     }
+
                     if (controlComingData != null) {
                         try {
+                            /** Convert Json*/
                             JSONObject mDataObject = new JSONObject(controlComingData);
                             String getSensorId = null;
                             String getSensorValue = null;
@@ -174,6 +178,7 @@ public class UartManager {
                                 getSensorId = mDataObject.getString(GET_ID_STRING);
                                 getSensorValue = mDataObject.getString(GET_VALUE_STRING);
 
+                                /** Control end Send Data Manager*/
                                 if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(REGEXP_ID)) {
                                     mDataManager.getData(getSensorId,getSensorValue);
                                 }
