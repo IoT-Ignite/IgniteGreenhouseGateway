@@ -27,8 +27,8 @@ public class ThreadManager extends Thread {
     public ThreadManager(){
     }
 
-    public void getData(String getDeviceId, String getValue,long getDelayTime){
-        this.getDeviceId=getDeviceId;
+    public void parseData(String nodeName, String getThingName, String getValue,long getDelayTime){
+        this.getDeviceId=nodeName;
         this.getValue=getValue;
         this.getDelayTime=getDelayTime;
     }

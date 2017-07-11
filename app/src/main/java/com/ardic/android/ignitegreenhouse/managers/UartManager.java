@@ -180,7 +180,7 @@ public class UartManager {
 
                                 /** Control end Send Data Manager*/
                                 if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(REGEXP_ID)) {
-                                    mDataManager.getData(getSensorId,getSensorValue);
+                                    mDataManager.parseData(getSensorId,getSensorValue);
                                 }
                             }
                         } catch (JSONException e) {

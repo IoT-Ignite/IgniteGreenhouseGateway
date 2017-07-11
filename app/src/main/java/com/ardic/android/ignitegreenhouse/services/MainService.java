@@ -21,6 +21,7 @@ public class MainService extends Service {
      */
 
     private static final String TAG =MainService.class.getSimpleName();
+    private static final String INTENT_FILTER_IGNITE_STATUS = "igniteConnect";
     private UartManager mUartManager;
 
     private boolean getIgniteStatus= false;
@@ -60,7 +61,7 @@ public class MainService extends Service {
     public void onCreate() {
         super.onCreate();
         LocalBroadcastManager.getInstance(this).registerReceiver(igniteStatusMessage,
-                new IntentFilter("igniteConnect"));
+                new IntentFilter(INTENT_FILTER_IGNITE_STATUS));
         IotIgniteHandler.getInstance(this).start();
     }
 
@@ -73,6 +74,7 @@ public class MainService extends Service {
     public void onDestroy() {
         try {
             mUartManager.closeUart();
+            IotIgniteHandler.getInstance(this).shutdown();
         } catch (IOException e) {
             Log.e(TAG,"Uart close error!");
         }
