@@ -29,7 +29,6 @@ public class MainService extends Service {
     /**
      *It takes the "connect" method broadcast from "IoT - Ignite".
      * If "IoT - Ignite" status is "Connect", it initiates "Uart" operations.
-     * If "IoT - Ignite" status is "Connect", it initiates "Uart" operations.
      */
     private BroadcastReceiver igniteStatusMessage = new BroadcastReceiver() {
         @Override

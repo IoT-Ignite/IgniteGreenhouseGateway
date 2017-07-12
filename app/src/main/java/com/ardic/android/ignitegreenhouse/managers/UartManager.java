@@ -64,7 +64,6 @@ public class UartManager {
     };
 
 
-
     /**
      * Callback invoked when UART receives new incoming data.
      */

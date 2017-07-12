@@ -10,9 +10,7 @@ import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -23,16 +21,24 @@ import java.util.Set;
 public class Configuration {
 
     private static final String TAG = Configuration.class.getSimpleName();
-
-    private List<String> deviceIdList = new ArrayList();
-    private List<String> deviceNameList = new ArrayList();
-
-    private String getSensorDeviceId;
-
+    /**
+     * Node - Thing Label - Thing Code used to save
+     * This Format : KEY   = "NodeName:ThingLabel"
+     * VALUE = "Thing Code"
+     * Example     : "GreenHouse1:Temperature" - "f4030687"
+     */
     private SharedPreferences sensors;
     private SharedPreferences.Editor sensorsEditor;
 
+    /**
+     * Statics :
+     */
+
+    /**
+     * They declare the "key" values in the incoming "json" format
+     */
     private static final String ADD_DEVICE_STRING = "addDevice";
+    private static final String REMOVE_DEVICE_STRING = "removeDevice";
     private static final String GET_NODE_ID_STRING = "nodeId";
     private static final String GET_THINGS_STRING = "things";
     private static final String GET_THING_CODE_STRING = "thingCode";
@@ -41,19 +47,28 @@ public class Configuration {
     private static final String CONFIGURATION_NODE_STRING = "Configurator";
     private static final String CONFIGURATION_THING_STRING = "Configurator Thing";
 
-    private static final String RETURN_CREATE_MESSAGE_TRUE = "{\"returnAddDevice\":{\"createNode\":true,\"createThing\":true}}";
-    private static final String RETURN_CREATE_MESSAGE_FALSE = "{\"returnAddDevice\": {\"createNode\": false,\"createThing\": false,\"descriptions\":\"The received data have already been registered. Please delete first !\"}}";
+    /**
+     * Returning notifications
+     */
+    private static final String RESPONSE_CREATE_MESSAGE_TRUE = "{\"responseAddDevice\":{\"createNode\":true,\"createThing\":true}}";
+    private static final String RESPONSE_CREATE_MESSAGE_FALSE = "{\"responseAddDevice\": {\"createNode\": false,\"createThing\": false,\"descriptions\":\"The received data have already been registered. Please delete first !\"}}";
+
     private static final String PREFERENCES_ADD_SENSOR_NOT_GET = "N/A";
 
     private Context mContext;
+    private IotIgniteHandler mIotIgniteHandler;
+
 
     private static Configuration INSTANCE = null;
 
     private Configuration(Context context) {
         mContext = context;
 
-        sensors = PreferenceManager.getDefaultSharedPreferences(mContext);
-        sensorsEditor = sensors.edit();
+        if (context != null) {
+            mIotIgniteHandler = IotIgniteHandler.getInstance(mContext);
+            sensors = PreferenceManager.getDefaultSharedPreferences(mContext);
+            sensorsEditor = sensors.edit();
+        }
     }
 
     public static synchronized Configuration getInstance(Context context) {
@@ -64,24 +79,12 @@ public class Configuration {
         return INSTANCE;
     }
 
-
-    public Boolean matchDevice(String deviceId) {
-        getSensorDeviceId = deviceId;
-        if (deviceIdList.contains(deviceId)) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-
     public void receivedConfigMessage(String recivedNode, String recivedThing, String receivedMessage) {
         if (recivedNode.equals(CONFIGURATION_NODE_STRING)) {
             if (recivedThing.equals(CONFIGURATION_THING_STRING)) {
                 addSensorJson(receivedMessage);
             }
         }
-
     }
 
 
@@ -111,11 +114,19 @@ public class Configuration {
                     }
                 }
             }
+            //todo : remove yap
+            if (mGetConfigurationJson != null && mGetConfigurationJson.has(REMOVE_DEVICE_STRING)) {
+
+                if (mGetConfigurationJson.getBoolean(REMOVE_DEVICE_STRING)) {
+                    removeSavedAllDevices();
+                }
+            }
 
         } catch (JSONException e) {
             e.printStackTrace();
         }
     }
+
 
     private void addJsonControl(String getNode, String getThing, String getThingLabel) {
         Log.e(TAG, "Node : " + getNode +
@@ -126,13 +137,31 @@ public class Configuration {
             sensorsEditor.putString(getNode + ":" + getThingLabel, getThing);
             sensorsEditor.commit();
             Log.i(TAG, getNode + " Node has been added " + getThing + " with the number " + getThingLabel + " thing.");
-            IotIgniteHandler.getInstance(mContext).registerNodes(getNode);
-            IotIgniteHandler.getInstance(mContext).registerThings(getThingLabel, "Seratonin", "Seraton", "d");
-            IotIgniteHandler.getInstance(mContext).sendConfiguratorThingMessage(RETURN_CREATE_MESSAGE_TRUE);
+            mIotIgniteHandler.registerNode(getNode);
+            mIotIgniteHandler.registerThing(getThingLabel, "Seratonin", "Seraton", "d");
+            try {
+                JSONObject returnCreateTrue = new JSONObject(RESPONSE_CREATE_MESSAGE_TRUE);
+                returnCreateTrue.put("Node", getNode);
+                returnCreateTrue.put("Thing", getThingLabel);
+                returnCreateTrue.put("Thing Code", getThing);
+                mIotIgniteHandler.sendConfiguratorThingMessage(returnCreateTrue.toString());
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         } else {
+
+            try {
+                JSONObject returnCreateFalse = new JSONObject(RESPONSE_CREATE_MESSAGE_FALSE);
+                returnCreateFalse.put("Node", getNode);
+                returnCreateFalse.put("Thing", getThingLabel);
+                returnCreateFalse.put("Thing Code", getThing);
+                mIotIgniteHandler.sendConfiguratorThingMessage(returnCreateFalse.toString());
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
             //todo: json olarak çek ve içine "node" ile "thing" i göm
-            IotIgniteHandler.getInstance(mContext).sendConfiguratorThingMessage( RETURN_CREATE_MESSAGE_FALSE);
-            Log.i(TAG, "The received data have already been registered. Please delete first !");
+
+            Log.i(TAG, "The received thing have already been registered. Please delete first !");
         }
     }
 
@@ -146,11 +175,12 @@ public class Configuration {
         return sensors.getAll();
     }
 
-    public void removeSavedDevices(String getNode, String getThingLabel) {
+    public void removeSavedThing(String getNode, String getThingLabel) {
         sensorsEditor.remove(getNode + ":" + getThingLabel);
         sensorsEditor.commit();
         Log.e(TAG, "Removed Node : " + getNode +
                 "\nThing : " + getThingLabel);
+        mIotIgniteHandler.sendConfiguratorThingMessage("{\"removedThingResponse\":{\"node\":\"" + getNode + "\",\"thing\":\"" + getThingLabel + "\"}}");
     }
 
     // Todo : Boolean kontrol ekle
@@ -165,6 +195,7 @@ public class Configuration {
                 sensorsEditor.remove(key);
                 sensorsEditor.commit();
                 Log.e(TAG, "Removed Node : " + getNode);
+                mIotIgniteHandler.sendConfiguratorThingMessage("{\"removedNodeResponse\":\"" + getNode + "\"}");
             }
         }
     }
@@ -174,7 +205,6 @@ public class Configuration {
         sensorsEditor.commit();
         Log.e(TAG, "Removed All Saved ...");
     }
-
 
     public String getDeviceCodeThing(String deviceCode) {
         Map<String, ?> getAllSensor = sensors.getAll();
@@ -189,7 +219,6 @@ public class Configuration {
         }
         return null;
     }
-
 
 //TODO : Eğer mesajı alırda işleyemezse geri hata döndürecek
 //TODO : Mesajı işlerse ilgili nodun thingine true değeri döndürecek
