@@ -4,9 +4,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.support.v4.content.LocalBroadcastManager;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.configuration.Configuration;
+import com.ardic.android.ignitegreenhouse.managers.DataManager;
 import com.ardic.android.iotignite.callbacks.ConnectionCallback;
 import com.ardic.android.iotignite.enumerations.NodeType;
 import com.ardic.android.iotignite.enumerations.ThingCategory;
@@ -22,6 +24,8 @@ import com.ardic.android.iotignite.things.ThingActionData;
 import com.ardic.android.iotignite.things.ThingData;
 import com.ardic.android.iotignite.things.ThingType;
 
+import java.util.List;
+
 public class IotIgniteHandler implements ConnectionCallback, NodeListener, ThingListener {
 
     private static final String TAG = IotIgniteHandler.class.getSimpleName();
@@ -30,8 +34,6 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
     private static IotIgniteHandler INSTANCE = null;
     private static final long IGNITE_RECONNECT_INTERVAL = 10000L;
 
-    private static final String NODE_ID = "WeMos D1";
-    private static final String THING_ID = "LM-35 Temperature";
 
     private static final String CONFIG_NODE_ID = "Configurator";
     private static final String CONFIG_THING_ID = "Configurator Thing";
@@ -52,14 +54,15 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
 
     private Thing findThing;
 
-    private static final String INTENT_FILTER_IGNITE_STATUS="igniteConnect";
-    private static final String INTENT_FILTER_CONFIG="getConfig";
+    public static final String INTENT_FILTER_IGNITE_STATUS = "igniteConnect";
+    public static final String INTENT_FILTER_CONFIG = "getConfig";
 
-    private static final String INTENT_NODE_NAME="getConfigPutNodeName";
-    private static final String INTENT_THING_NAME="getConfigPutThingName";
-    private static final String INTENT_THING_FREQUENCY="getConfigPutFrequency";
+    public static final String INTENT_NODE_NAME = "getConfigPutNodeName";
+    public static final String INTENT_THING_NAME = "getConfigPutThingName";
+    public static final String INTENT_THING_FREQUENCY = "getConfigPutFrequency";
 
     private Configuration mConfiguration;
+    private DataManager mDataManager;
 
     private ThingType mConfiguratorThingType = new ThingType(
             /** Define Type of your Thing */
@@ -109,7 +112,8 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
     @Override
     public void onConnected() {
         Log.i(TAG, "Ignite Connected");
-        mConfiguration=Configuration.getInstance(appContext);
+        mConfiguration = Configuration.getInstance(appContext);
+        mDataManager = DataManager.getInstance(appContext);
         igniteWatchdog.removeCallbacks(igniteWatchdogRunnable);
         igniteConnected = true;
 
@@ -117,11 +121,13 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
         LocalBroadcastManager.getInstance(appContext).sendBroadcast(intents);
         Log.i(TAG, "Ignite Send Broadcast (onConnected)");
 
+        updateListener();
+
         if (registerConfiguratorNode() && registerConfiguratorThing()) {
             Log.i(TAG, "Configurator Node and Configurator Thing Created");
         }
 
-        updateListener();
+
         //TODO : PREFERENCES DE olan ile agent ta olan thing ve nodeları başka thread te karşılaştır
     }
 
@@ -140,7 +146,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
      */
     @Override
     public void onNodeUnregistered(String s) {
-        mConfiguration.removeSavedNode(s);
+        // mConfiguration.removeSavedNode(s);
     }
 
     @Override
@@ -174,15 +180,35 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
     }
 
     @Override
-    public void onThingUnregistered(String s, String s1) {
+    public void onThingUnregistered(final String s, final String s1) {
 
         /**
          * If your thing object is unregistered from outside world, you will receive this
          * information callback.
          */
-        Configuration.getInstance(appContext).removeSavedThing(s, s1);
-        Log.e(TAG,"Unregister : " + s +":"+s1);
+        if (!s.equals(CONFIG_NODE_ID) && !s1.equals(CONFIG_THING_ID)) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    mConfiguration.removeSavedThing(s, s1);
+                }
+            }).run();
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    mDataManager.killThread(s, s1);
+                }
+            }).run();
+        } else {
+            if (registerConfiguratorNode() && registerConfiguratorThing()) {
+                Log.i(TAG, "Configurator Node and Configurator Thing Created");
+            }
+        }
+
+        Log.e(TAG, "Unregister : " + s + ":" + s1);
     }
+
 
     /**
      * Connect to iot ignite
@@ -215,11 +241,11 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
     public void shutdown() {
         try {
             for (Node mNode : IotIgniteManager.getNodeList()) {
-                for (Thing mThing : mNode.getEveryThing()) {
-                    mThing.setConnected(false," Application Destroyed");
+                for (Thing mThing : getEveryThing(mNode)) {
+                    mThing.setConnected(false, " Application Destroyed");
                     mNode.setConnected(false, "Application Destroyed");
-                    }
                 }
+            }
         } catch (AuthenticationException e) {
             e.printStackTrace();
         }
@@ -358,63 +384,124 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
     }
 
     /**
-     *  Send Data
+     * Send Data
      */
-    public boolean sendData(String nodeName, String thingName, String value) {
-        if (!getThingList(nodeName, thingName).equals(null)) {
-            findThing = getThingList(nodeName, thingName);
-        }
-        if (igniteConnected && findThing != null && findThing.isRegistered()) {
-            ThingData data = new ThingData();
-            data.addData(Double.parseDouble(value));
-            Log.e(TAG,"Send Node : " + nodeName +
-                       "\nThing : " + thingName +
-                        "\nValue : " + value);
 
-            return findThing.sendData(data);
+    public void sendData(final String nodeName, final String thingName, final String value) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (!TextUtils.isEmpty(nodeName) && !TextUtils.isEmpty(thingName) && (getThingList(nodeName, thingName) != null)) {
+                    findThing = getThingList(nodeName, thingName);
+                } else if (!mConfiguration.getSavedDevices(nodeName, thingName).equals(mConfiguration.PREFERENCES_ADD_SENSOR_NOT_GET) && getThingList(nodeName, thingName) == null) {
+                    Log.e(TAG, "Not Find Cloud : Node : " + nodeName + " : " + thingName);
+                    registerNode(nodeName);
+                    registerThing(thingName, "Seratonin", "Seraton", "d");
+                } else if (!(getThingList(nodeName, thingName) == null) && !getThingList(nodeName, thingName).isRegistered()) {
+                    Log.e(TAG, "Not Register Node : " + nodeName + " - Thing : " + thingName);
+                    registerNode(nodeName);
+                    registerThing(thingName, "Seratonin", "Seraton", "d");
+                }
+
+                if (igniteConnected && findThing != null && findThing.isRegistered()) {
+                    ThingData data = new ThingData();
+                    data.addData(Double.parseDouble(value));
+                    Log.e(TAG, "Send Node : " + nodeName +
+                            "\nThing : " + thingName +
+                            "\nValue : " + value);
+                    findThing.sendData(data);
+                }
+            }
+        }).run();
+    }
+
+    public final List<Thing> getEveryThing(Node mNode) {
+        return mNode.getEveryThing();
+    }
+
+    public void clearAllThing() {
+        try {
+            for (Node mNode : IotIgniteManager.getNodeList()) {
+                for (Thing mThing : getEveryThing(mNode)) {
+                    mThing.unregister();
+                    Log.e(TAG, "Thing List : " + mNode.getEveryThing());
+
+                }
+                mNode.unregister();
+            }
+            if (registerConfiguratorNode() && registerConfiguratorThing()) {
+                Log.i(TAG, "Configurator Node and Configurator Thing Created");
+            }
+        } catch (AuthenticationException e) {
+            e.printStackTrace();
         }
-        return false;
     }
 
     public Thing getThingList(String nodeName, String thingName) {
         try {
             for (Node mNode : IotIgniteManager.getNodeList()) {
-                for (Thing mThing : mNode.getEveryThing()) {
+                for (Thing mThing : getEveryThing(mNode)) {
                     if (mNode.getNodeID().equals(nodeName) && mThing.getThingID().equals(thingName)) {
                         return mThing;
                     }
                 }
             }
-
         } catch (AuthenticationException e) {
             e.printStackTrace();
         }
         return null;
     }
 
-    private void updateListener() {
+    public void updateListener() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    for (Node mNode : IotIgniteManager.getNodeList()) {
+                        mNode.setNodeListener(IotIgniteHandler.this);
+                        mNode.register();
+                        for (Thing mThing : getEveryThing(mNode)) {
+                            mThing.setThingListener(IotIgniteHandler.this);
+                            if (registerNode(mThing.getNodeID()) && registerThing(mThing.getThingID(), "Seratonin", "Seraton", "d")) {
+                                Log.i(TAG, mThing.getNodeID() + "  Node and " + mThing.getThingID() + " Thing Control");
+                            }
+                           /* if (!mThing.isRegistered()) {
+                                if (registerNode(mThing.getNodeID()) && registerThing(mThing.getThingID(), "Seratonin", "Seraton", "d")) {
+                                    Log.i(TAG, mThing.getNodeID() + "  Node and " + mThing.getThingID() + " Thing Control");
+                                }
+                            }*/
+
+                            getConfIntent.putExtra(INTENT_NODE_NAME, mThing.getNodeID());
+                            LocalBroadcastManager.getInstance(appContext).sendBroadcast(getConfIntent);
+
+                            getConfIntent.putExtra(INTENT_THING_NAME, mThing.getThingID());
+                            LocalBroadcastManager.getInstance(appContext).sendBroadcast(getConfIntent);
+
+                            getConfIntent.putExtra(INTENT_THING_FREQUENCY, mThing.getThingConfiguration().getDataReadingFrequency());
+                            LocalBroadcastManager.getInstance(appContext).sendBroadcast(getConfIntent);
+                        }
+                    }
+                } catch (AuthenticationException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).run();
+
+    }
+
+    public long getConfigurationTime(String nodeThing) {
         try {
             for (Node mNode : IotIgniteManager.getNodeList()) {
-                mNode.setNodeListener(this);
-                for (Thing mThing : mNode.getEveryThing()) {
-                    mThing.setThingListener(this);
-
-                    if ( registerNode(mThing.getNodeID()) && registerThing( mThing.getThingID(), "Seratonin", "Seraton", "d")) {
-                        Log.i(TAG, mThing.getNodeID()+"  Node and "+mThing.getThingID()+" Thing Control");
+                for (Thing mThing : getEveryThing(mNode)) {
+                    if (nodeThing.equals(mThing.getNodeID() + ":" + mThing.getThingID())) {
+                        Log.i(TAG, "Configuration desired : " + nodeThing);
+                        return mThing.getThingConfiguration().getDataReadingFrequency();
                     }
-
-                    getConfIntent.putExtra(INTENT_NODE_NAME, mThing.getNodeID());
-                    LocalBroadcastManager.getInstance(appContext).sendBroadcast(getConfIntent);
-
-                    getConfIntent.putExtra(INTENT_THING_NAME, mThing.getThingID());
-                    LocalBroadcastManager.getInstance(appContext).sendBroadcast(getConfIntent);
-
-                    getConfIntent.putExtra(INTENT_THING_FREQUENCY, mThing.getThingConfiguration().getDataReadingFrequency());
-                    LocalBroadcastManager.getInstance(appContext).sendBroadcast(getConfIntent);
                 }
             }
         } catch (AuthenticationException e) {
             e.printStackTrace();
         }
+        return -5;
     }
 }

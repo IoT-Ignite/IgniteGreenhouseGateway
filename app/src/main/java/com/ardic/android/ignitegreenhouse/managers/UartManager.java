@@ -90,7 +90,7 @@ public class UartManager {
     public UartManager(Context context) {
         Log.i(TAG, "UartManager Open .");
         if (context != null) {
-            mDataManager= new DataManager(context);
+            mDataManager= DataManager.getInstance(context);
             if (sendDataRunnable != null) {
                 sendDataHandler.post(sendDataRunnable);
             }
@@ -126,12 +126,15 @@ public class UartManager {
     /**
      * Close the UART device connection, if it exists
      */
-    public void closeUart() throws IOException {
+    public void closeUart() {
         if (mUartDevice != null) {
             mUartDevice.unregisterUartDeviceCallback(getUartCallback);
             try {
                 mUartDevice.close();
-            } finally {
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+             finally {
                 mUartDevice = null;
             }
         }
@@ -144,52 +147,59 @@ public class UartManager {
      * Potentially long-running operation. Call from a worker thread.
      */
     public void transferUartData() {
-        if (mUartDevice != null) {
-            // Loop until there is no more data in the RX buffer.
-            try {
-                final byte[] buffer = new byte[CHUNK_SIZE];
-                int read;
-                while ((read = mUartDevice.read(buffer, buffer.length)) == CHUNK_SIZE) {
-                    mUartDevice.write(buffer, read);
-                    /** Read Data */
-                    String incomingData = new String(buffer);
-                    String controlComingData = null;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (mUartDevice != null) {
+                    // Loop until there is no more data in the RX buffer.
+                    try {
+                        final byte[] buffer = new byte[CHUNK_SIZE];
+                        int read;
+                        while ((read = mUartDevice.read(buffer, buffer.length)) == CHUNK_SIZE) {
+                            mUartDevice.write(buffer, read);
+                            /** Read Data */
+                            String incomingData = new String(buffer);
+                            String controlComingData = null;
 
-                    /** For Control True Data*/
-                    int beginCharacterIndex = incomingData.indexOf(GET_BEGIN_CHARACTER);
-                    int endCharacterIndex = incomingData.indexOf(GET_END_CHARACTER);
+                            /** For Control True Data*/
+                            int beginCharacterIndex = incomingData.indexOf(GET_BEGIN_CHARACTER);
+                            int endCharacterIndex = incomingData.indexOf(GET_END_CHARACTER);
 
-                    if (incomingData.contains(GET_BEGIN_CHARACTER) && incomingData.contains(GET_END_CHARACTER)) {
-                        if (beginCharacterIndex < endCharacterIndex) {
-                            /** Split */
-                            controlComingData = incomingData.substring(beginCharacterIndex + 3, endCharacterIndex);
-                        }
-                    }
-
-                    if (controlComingData != null) {
-                        try {
-                            /** Convert Json*/
-                            JSONObject mDataObject = new JSONObject(controlComingData);
-                            String getSensorId = null;
-                            String getSensorValue = null;
-
-                            if (mDataObject != null && mDataObject.has(GET_ID_STRING) && mDataObject.has(GET_VALUE_STRING)) {
-                                getSensorId = mDataObject.getString(GET_ID_STRING);
-                                getSensorValue = mDataObject.getString(GET_VALUE_STRING);
-
-                                /** Control end Send Data Manager*/
-                                if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(REGEXP_ID)) {
-                                    mDataManager.parseData(getSensorId,getSensorValue);
+                            if (incomingData.contains(GET_BEGIN_CHARACTER) && incomingData.contains(GET_END_CHARACTER)) {
+                                if (beginCharacterIndex < endCharacterIndex) {
+                                    /** Split */
+                                    controlComingData = incomingData.substring(beginCharacterIndex + 3, endCharacterIndex);
                                 }
                             }
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+
+                            if (controlComingData != null) {
+                                try {
+                                    /** Convert Json*/
+                                    JSONObject mDataObject = new JSONObject(controlComingData);
+                                    String getSensorId = null;
+                                    String getSensorValue = null;
+
+                                    if (mDataObject != null && mDataObject.has(GET_ID_STRING) && mDataObject.has(GET_VALUE_STRING)) {
+                                        getSensorId = mDataObject.getString(GET_ID_STRING);
+                                        getSensorValue = mDataObject.getString(GET_VALUE_STRING);
+
+                                        /** Control end Send Data Manager*/
+                                        if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(REGEXP_ID)) {
+                                            mDataManager.parseData(getSensorId,getSensorValue);
+                                            Log.e(TAG,"GET UART DATA : " + getSensorId + " - " + getSensorValue);
+                                        }
+                                    }
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
                         }
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
                     }
                 }
-            } catch (IOException e1) {
-                e1.printStackTrace();
             }
-        }
+        }).run();
+
     }
 }

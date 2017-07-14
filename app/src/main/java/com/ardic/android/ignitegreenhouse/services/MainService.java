@@ -71,12 +71,8 @@ public class MainService extends Service {
 
     @Override
     public void onDestroy() {
-        try {
-            mUartManager.closeUart();
-            IotIgniteHandler.getInstance(this).shutdown();
-        } catch (IOException e) {
-            Log.e(TAG,"Uart close error!");
-        }
+        mUartManager.closeUart();
+        IotIgniteHandler.getInstance(this).shutdown();
         super.onDestroy();
     }
 }

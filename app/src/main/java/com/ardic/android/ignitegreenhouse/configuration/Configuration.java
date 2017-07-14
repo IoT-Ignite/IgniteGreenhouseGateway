@@ -6,6 +6,7 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
+import com.ardic.android.ignitegreenhouse.managers.DataManager;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -38,7 +39,7 @@ public class Configuration {
      * They declare the "key" values in the incoming "json" format
      */
     private static final String ADD_DEVICE_STRING = "addDevice";
-    private static final String REMOVE_DEVICE_STRING = "removeDevice";
+    private static final String REMOVE_DEVICE_STRING = "removeAllDevice";
     private static final String GET_NODE_ID_STRING = "nodeId";
     private static final String GET_THINGS_STRING = "things";
     private static final String GET_THING_CODE_STRING = "thingCode";
@@ -53,7 +54,7 @@ public class Configuration {
     private static final String RESPONSE_CREATE_MESSAGE_TRUE = "{\"responseAddDevice\":{\"createNode\":true,\"createThing\":true}}";
     private static final String RESPONSE_CREATE_MESSAGE_FALSE = "{\"responseAddDevice\": {\"createNode\": false,\"createThing\": false,\"descriptions\":\"The received data have already been registered. Please delete first !\"}}";
 
-    private static final String PREFERENCES_ADD_SENSOR_NOT_GET = "N/A";
+    public static final String PREFERENCES_ADD_SENSOR_NOT_GET = "N/A";
 
     private Context mContext;
     private IotIgniteHandler mIotIgniteHandler;
@@ -108,8 +109,6 @@ public class Configuration {
                         JSONObject addThingArray = new JSONObject(String.valueOf(addDeviceArray.getJSONArray(GET_THINGS_STRING).get(thingNumber)));
                         Log.e(TAG, "GET Thing Code : " + addThingArray.getString(GET_THING_CODE_STRING));
                         Log.e(TAG, "GET Thing Label : " + addThingArray.getString(GET_THING_LABEL_STRING));
-
-                        //TODO : Boolean kontrol yapıp geri mesaj gönderilecek
                         addJsonControl(addDeviceArray.getString(GET_NODE_ID_STRING), addThingArray.getString(GET_THING_CODE_STRING), addThingArray.getString(GET_THING_LABEL_STRING));
                     }
                 }
@@ -123,6 +122,7 @@ public class Configuration {
             }
 
         } catch (JSONException e) {
+            mIotIgniteHandler.sendConfiguratorThingMessage("{\"error\":\"Error Format\"}");
             e.printStackTrace();
         }
     }
@@ -132,6 +132,9 @@ public class Configuration {
         Log.e(TAG, "Node : " + getNode +
                 "\nThing : " + getThing +
                 "\nThing Label : " + getThingLabel);
+
+        getNode = getNode.replace(" ", "");
+        getThingLabel = getThingLabel.replace(" ", "");
 
         if (!sensors.contains(getNode + ":" + getThingLabel)) {
             sensorsEditor.putString(getNode + ":" + getThingLabel, getThing);
@@ -145,7 +148,10 @@ public class Configuration {
                 returnCreateTrue.put("Thing", getThingLabel);
                 returnCreateTrue.put("Thing Code", getThing);
                 mIotIgniteHandler.sendConfiguratorThingMessage(returnCreateTrue.toString());
+                DataManager.getInstance(mContext).threadManager();
+                mIotIgniteHandler.updateListener();
             } catch (JSONException e) {
+                mIotIgniteHandler.sendConfiguratorThingMessage("{\"error\":\"Error Format\"");
                 e.printStackTrace();
             }
         } else {
@@ -157,10 +163,9 @@ public class Configuration {
                 returnCreateFalse.put("Thing Code", getThing);
                 mIotIgniteHandler.sendConfiguratorThingMessage(returnCreateFalse.toString());
             } catch (JSONException e) {
+                mIotIgniteHandler.sendConfiguratorThingMessage("{\"error\":\"Error Format\"");
                 e.printStackTrace();
             }
-            //todo: json olarak çek ve içine "node" ile "thing" i göm
-
             Log.i(TAG, "The received thing have already been registered. Please delete first !");
         }
     }
@@ -178,15 +183,14 @@ public class Configuration {
     public void removeSavedThing(String getNode, String getThingLabel) {
         sensorsEditor.remove(getNode + ":" + getThingLabel);
         sensorsEditor.commit();
+        // todo : debug true yaz
         Log.e(TAG, "Removed Node : " + getNode +
                 "\nThing : " + getThingLabel);
         mIotIgniteHandler.sendConfiguratorThingMessage("{\"removedThingResponse\":{\"node\":\"" + getNode + "\",\"thing\":\"" + getThingLabel + "\"}}");
     }
 
-    // Todo : Boolean kontrol ekle
     public void removeSavedNode(String getNode) {
         Map<String, ?> getAllSensor = sensors.getAll();
-
         Set keys = getAllSensor.keySet();
         for (Iterator i = keys.iterator(); i.hasNext(); ) {
             String key = (String) i.next();
@@ -201,40 +205,46 @@ public class Configuration {
     }
 
     public void removeSavedAllDevices() {
+        DataManager.getInstance(mContext).killAllThread();
         sensorsEditor.clear();
         sensorsEditor.commit();
+        mIotIgniteHandler.clearAllThing();
+
         Log.e(TAG, "Removed All Saved ...");
     }
 
-    public String getDeviceCodeThing(String deviceCode) {
+    public String[] getDeviceCodeThing(String deviceCode) {
+        Map<String, ?> getAllSensor = sensors.getAll();
+        Set keys = getAllSensor.keySet();
+        int counter = 0;
+        String[] keysOther = new String[sensors.getAll().size()];
+        for (Iterator i = keys.iterator(); i.hasNext(); ) {
+            String key = (String) i.next();
+            String value = (String) getAllSensor.get(key);
+            if (value.equals(deviceCode)) {
+                keysOther[counter] = key;
+                counter++;
+            }
+        }
+        if (counter == 1) {
+            return keysOther;
+        } else {
+            return keysOther;
+        }
+
+    }
+
+    public String getDeviceNodeKey(String keyNode) {
         Map<String, ?> getAllSensor = sensors.getAll();
         Set keys = getAllSensor.keySet();
 
         for (Iterator i = keys.iterator(); i.hasNext(); ) {
             String key = (String) i.next();
-            String value = (String) getAllSensor.get(key);
-            if (value.equals(deviceCode)) {
+            String[] split = key.split(":");
+            if (split[0].equals(keyNode)) {
                 return key;
             }
         }
         return null;
     }
-
-//TODO : Eğer mesajı alırda işleyemezse geri hata döndürecek
-//TODO : Mesajı işlerse ilgili nodun thingine true değeri döndürecek
-
 }
-
-        /*
-        //TODO : List Denemesi
-        deviceIdList.add("f4030687");
-        deviceNameList.add("Temperature");
-
-        deviceIdList.add("10020001");
-        deviceNameList.add("Humidity");
-        Log.i(TAG,"Get Device String" + deviceIdList);
-
-        // TODO : Map Denemesi
-        map1.put("name", "Josh");
-        Log.e(TAG,"Mappp : " +map1.get("name"));
-        */

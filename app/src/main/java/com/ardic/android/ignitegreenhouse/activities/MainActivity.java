@@ -34,9 +34,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         Log.d(TAG, "Main Activity onDestroy");
-        stopService(new Intent(this,MainService.class));
         super.onDestroy();
-
     }
 
     private void initUIComponents() {
