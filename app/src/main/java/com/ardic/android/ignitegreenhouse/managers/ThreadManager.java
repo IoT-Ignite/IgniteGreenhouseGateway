@@ -11,6 +11,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
+import com.ardic.android.ignitegreenhouse.model.Constant;
 
 /**
  * Created by acel on 7/7/17.
@@ -57,12 +58,14 @@ public class ThreadManager extends Thread {
                         }
                         broadCastFlag = false;
                     }
-                    Log.i(TAG, "Node : " + getNodeName + " - Thing : " + getThingName + " - Value : " + getValue + " - Delay : " + getDelayTime);
+                    if (Constant.DEBUG) {
+                        Log.i(TAG, "Node : " + getNodeName + " - Thing : " + getThingName + " - Value : " + getValue + " - Delay : " + getDelayTime);
+                    }
                 }
             }
-            sendDataHandler.postDelayed(this, getDelayTime);
-//TODO : Hata bul
-
+            if (sendDataHandler!=null) {
+                sendDataHandler.postDelayed(this, getDelayTime);
+            }
         }
     };
 
@@ -79,9 +82,11 @@ public class ThreadManager extends Thread {
     }
 
     public void parseData(String nodeName, String getThingName, String getValue) {
-        Log.i(TAG, "Parse Data Node Name : " + nodeName +
-                "\nThing Name : " + getThingName +
-                "\nMessage : " + getValue);
+        if (Constant.DEBUG) {
+            Log.i(TAG, "Parse Data Node Name : " + nodeName +
+                    "\nThing Name : " + getThingName +
+                    "\nMessage : " + getValue);
+        }
         this.getNodeName = nodeName;
         this.getThingName = getThingName;
         this.getValue = getValue;

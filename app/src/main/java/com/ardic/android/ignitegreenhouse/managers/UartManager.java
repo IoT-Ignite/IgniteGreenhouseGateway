@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.ardic.android.ignitegreenhouse.model.Constant;
 import com.google.android.things.pio.PeripheralManagerService;
 import com.google.android.things.pio.UartDevice;
 import com.google.android.things.pio.UartDeviceCallback;
@@ -26,15 +27,11 @@ public class UartManager {
     private PeripheralManagerService peripheralManagerService = new PeripheralManagerService();
 
     /** UART Configuration Parameters*/
-    private static final int BAUD_RATE = 4800;
+    private static final int BAUD_RATE = 9600;
     private static final int DATA_BITS = 8;
     private static final int STOP_BITS = 1;
-    private static final int CHUNK_SIZE = 35;
+    private static final int CHUNK_SIZE = 50;
     private static final String DEVICE_RPI3 = "UART0";
-    //
-    // private static final String REGEXP_VALUE = "[0-9]+.+[0-9]";
-    // private static final String REGEXP2 = "\"id\":[0-9a-fA-F]+,\"val\":[0-9]++";
-    private static final String REGEXP_ID = "[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]";
 
     private static final String GET_ID_STRING = "id";
     private static final String GET_VALUE_STRING = "val";
@@ -47,7 +44,7 @@ public class UartManager {
 
      private DataManager mDataManager;
 
-    private long getSendDataTime = 3000L;
+    private long getSendDataTime = 100L;
     /**
      * To send a data cloud to the configuration without
      */
@@ -63,7 +60,6 @@ public class UartManager {
         }
     };
 
-
     /**
      * Callback invoked when UART receives new incoming data.
      */
@@ -77,7 +73,9 @@ public class UartManager {
         @Override
         public void onUartDeviceError(UartDevice uart, int error) {
             if (sendDataRunnable != null) {
-                Log.w(TAG, uart + ": Error event " + error);
+                if (Constant.DEBUG) {
+                    Log.e(TAG, uart + ": Error event " + error);
+                }
                 sendDataHandler.removeCallbacks(sendDataRunnable);
             }
         }
@@ -88,7 +86,9 @@ public class UartManager {
      * , define context and start sendDataRunnable
      */
     public UartManager(Context context) {
-        Log.i(TAG, "UartManager Open .");
+        if (Constant.DEBUG) {
+            Log.i(TAG, "UartManager Open .");
+        }
         if (context != null) {
             mDataManager= DataManager.getInstance(context);
             if (sendDataRunnable != null) {
@@ -147,7 +147,7 @@ public class UartManager {
      * Potentially long-running operation. Call from a worker thread.
      */
     public void transferUartData() {
-        new Thread(new Runnable() {
+        Thread transferUartDataThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 if (mUartDevice != null) {
@@ -155,11 +155,14 @@ public class UartManager {
                     try {
                         final byte[] buffer = new byte[CHUNK_SIZE];
                         int read;
+
                         while ((read = mUartDevice.read(buffer, buffer.length)) == CHUNK_SIZE) {
                             mUartDevice.write(buffer, read);
                             /** Read Data */
                             String incomingData = new String(buffer);
                             String controlComingData = null;
+
+                          //  Log.e(TAG, "GET UART DATA 1: " +incomingData );
 
                             /** For Control True Data*/
                             int beginCharacterIndex = incomingData.indexOf(GET_BEGIN_CHARACTER);
@@ -184,9 +187,11 @@ public class UartManager {
                                         getSensorValue = mDataObject.getString(GET_VALUE_STRING);
 
                                         /** Control end Send Data Manager*/
-                                        if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(REGEXP_ID)) {
-                                            mDataManager.parseData(getSensorId,getSensorValue);
-                                            Log.e(TAG,"GET UART DATA : " + getSensorId + " - " + getSensorValue);
+                                        if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(Constant.REGEXP_ID)) {
+                                            mDataManager.parseData(getSensorId, getSensorValue);
+                                            if (Constant.DEBUG) {
+                                                Log.e(TAG, "GET UART DATA : " + getSensorId + " - " + getSensorValue);
+                                            }
                                         }
                                     }
                                 } catch (JSONException e) {
@@ -199,7 +204,8 @@ public class UartManager {
                     }
                 }
             }
-        }).run();
+        });
+        transferUartDataThread.run();
 
     }
 }

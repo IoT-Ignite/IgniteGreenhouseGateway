@@ -7,6 +7,8 @@ import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
 import com.ardic.android.ignitegreenhouse.managers.DataManager;
+import com.ardic.android.ignitegreenhouse.model.Constant;
+import com.ardic.android.ignitegreenhouse.model.SensorType;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -39,7 +41,9 @@ public class Configuration {
      * They declare the "key" values in the incoming "json" format
      */
     private static final String ADD_DEVICE_STRING = "addDevice";
-    private static final String REMOVE_DEVICE_STRING = "removeAllDevice";
+    private static final String REMOVE_ALL_DEVICE_STRING = "removeAllDevice";
+    private static final String ADD_NEW_THING_TYPE = "addNewThingType";
+
     private static final String GET_NODE_ID_STRING = "nodeId";
     private static final String GET_THINGS_STRING = "things";
     private static final String GET_THING_CODE_STRING = "thingCode";
@@ -80,10 +84,14 @@ public class Configuration {
         return INSTANCE;
     }
 
+    /**
+     * The value from "Configurator" checks if the "node" is in "Configurator Thing".
+     * Send the incoming message to process
+     */
     public void receivedConfigMessage(String recivedNode, String recivedThing, String receivedMessage) {
         if (recivedNode.equals(CONFIGURATION_NODE_STRING)) {
             if (recivedThing.equals(CONFIGURATION_THING_STRING)) {
-                addSensorJson(receivedMessage);
+                parseSensorJson(receivedMessage);
             }
         }
     }
@@ -92,7 +100,7 @@ public class Configuration {
     /**
      * For create new Node and Thing
      */
-    private void addSensorJson(String getAddJson) {
+    private void parseSensorJson(String getAddJson) {
         try {
             JSONObject mGetConfigurationJson = new JSONObject(getAddJson);
 
@@ -102,23 +110,30 @@ public class Configuration {
 
                 for (int nodeNumber = 0; nodeNumber < getAddDataSize; nodeNumber++) {
                     JSONObject addDeviceArray = new JSONObject(String.valueOf(mGetConfigurationJson.getJSONArray(ADD_DEVICE_STRING).get(nodeNumber)));
-                    Log.e(TAG, "GET Node Id : " + addDeviceArray.getString(GET_NODE_ID_STRING));
+                    if (Constant.DEBUG) {
+                        Log.e(TAG, "GET Node Id : " + addDeviceArray.getString(GET_NODE_ID_STRING));
+                    }
                     int getAddThingSize = addDeviceArray.getJSONArray(GET_THINGS_STRING).length();
 
                     for (int thingNumber = 0; thingNumber < getAddThingSize; thingNumber++) {
                         JSONObject addThingArray = new JSONObject(String.valueOf(addDeviceArray.getJSONArray(GET_THINGS_STRING).get(thingNumber)));
-                        Log.e(TAG, "GET Thing Code : " + addThingArray.getString(GET_THING_CODE_STRING));
-                        Log.e(TAG, "GET Thing Label : " + addThingArray.getString(GET_THING_LABEL_STRING));
+                        if (Constant.DEBUG) {
+                            Log.e(TAG, "GET Thing Code : " + addThingArray.getString(GET_THING_CODE_STRING));
+                            Log.e(TAG, "GET Thing Label : " + addThingArray.getString(GET_THING_LABEL_STRING));
+                        }
                         addJsonControl(addDeviceArray.getString(GET_NODE_ID_STRING), addThingArray.getString(GET_THING_CODE_STRING), addThingArray.getString(GET_THING_LABEL_STRING));
                     }
                 }
             }
-            //todo : remove yap
-            if (mGetConfigurationJson != null && mGetConfigurationJson.has(REMOVE_DEVICE_STRING)) {
-
-                if (mGetConfigurationJson.getBoolean(REMOVE_DEVICE_STRING)) {
+            // todo : thinge göre remove yap
+            if (mGetConfigurationJson != null && mGetConfigurationJson.has(REMOVE_ALL_DEVICE_STRING)) {
+                if (mGetConfigurationJson.getBoolean(REMOVE_ALL_DEVICE_STRING)) {
                     removeSavedAllDevices();
                 }
+            }
+
+            if (mGetConfigurationJson != null && mGetConfigurationJson.has(ADD_NEW_THING_TYPE)) {
+                SensorType.getInstance(mContext).addSensorType(mGetConfigurationJson);
             }
 
         } catch (JSONException e) {
@@ -129,17 +144,20 @@ public class Configuration {
 
 
     private void addJsonControl(String getNode, String getThing, String getThingLabel) {
-        Log.e(TAG, "Node : " + getNode +
-                "\nThing : " + getThing +
-                "\nThing Label : " + getThingLabel);
-
+        if (Constant.DEBUG) {
+            Log.e(TAG, "Node : " + getNode +
+                    "\nThing : " + getThing +
+                    "\nThing Label : " + getThingLabel);
+        }
         getNode = getNode.replace(" ", "");
         getThingLabel = getThingLabel.replace(" ", "");
 
         if (!sensors.contains(getNode + ":" + getThingLabel)) {
             sensorsEditor.putString(getNode + ":" + getThingLabel, getThing);
             sensorsEditor.commit();
-            Log.i(TAG, getNode + " Node has been added " + getThing + " with the number " + getThingLabel + " thing.");
+            if (Constant.DEBUG) {
+                Log.i(TAG, getNode + " Node has been added " + getThing + " with the number " + getThingLabel + " thing.");
+            }
             mIotIgniteHandler.registerNode(getNode);
             mIotIgniteHandler.registerThing(getThingLabel, "Seratonin", "Seraton", "d");
             try {
@@ -166,7 +184,9 @@ public class Configuration {
                 mIotIgniteHandler.sendConfiguratorThingMessage("{\"error\":\"Error Format\"");
                 e.printStackTrace();
             }
-            Log.i(TAG, "The received thing have already been registered. Please delete first !");
+            if (Constant.DEBUG) {
+                Log.i(TAG, "The received thing have already been registered. Please delete first !");
+            }
         }
     }
 
@@ -183,9 +203,11 @@ public class Configuration {
     public void removeSavedThing(String getNode, String getThingLabel) {
         sensorsEditor.remove(getNode + ":" + getThingLabel);
         sensorsEditor.commit();
-        // todo : debug true yaz
-        Log.e(TAG, "Removed Node : " + getNode +
-                "\nThing : " + getThingLabel);
+
+        if (Constant.DEBUG) {
+            Log.e(TAG, "Removed Node : " + getNode +
+                    "\nThing : " + getThingLabel);
+        }
         mIotIgniteHandler.sendConfiguratorThingMessage("{\"removedThingResponse\":{\"node\":\"" + getNode + "\",\"thing\":\"" + getThingLabel + "\"}}");
     }
 
@@ -198,7 +220,9 @@ public class Configuration {
             if (split[0].equals(getNode)) {
                 sensorsEditor.remove(key);
                 sensorsEditor.commit();
-                Log.e(TAG, "Removed Node : " + getNode);
+                if (Constant.DEBUG) {
+                    Log.e(TAG, "Removed Node : " + getNode);
+                }
                 mIotIgniteHandler.sendConfiguratorThingMessage("{\"removedNodeResponse\":\"" + getNode + "\"}");
             }
         }
@@ -210,7 +234,9 @@ public class Configuration {
         sensorsEditor.commit();
         mIotIgniteHandler.clearAllThing();
 
-        Log.e(TAG, "Removed All Saved ...");
+        if (Constant.DEBUG) {
+            Log.e(TAG, "Removed All Saved ...");
+        }
     }
 
     public String[] getDeviceCodeThing(String deviceCode) {

@@ -7,6 +7,8 @@ import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.configuration.Configuration;
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
+import com.ardic.android.ignitegreenhouse.model.Constant;
+import com.ardic.android.ignitegreenhouse.model.SensorType;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -29,7 +31,9 @@ public class DataManager {
     private static DataManager INSTANCE = null;
 
     private DataManager(Context context) {
-        Log.i(TAG, "Get DataManager...");
+        if (Constant.DEBUG) {
+            Log.i(TAG, "Get DataManager...");
+        }
         if (context != null) {
             mContext = context;
             mConfiguration = Configuration.getInstance(mContext);
@@ -49,20 +53,22 @@ public class DataManager {
 
 
     public void parseData(final String getSensorCode, final String getValue) {
-        new Thread(new Runnable() {
+        Thread parseDataThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 if (!TextUtils.isEmpty(getSensorCode) && !TextUtils.isEmpty(getValue)) {
-                    Log.i(TAG, "Get Id : " + getSensorCode
-                            + "\nGet Value : " + getValue);
 
-                    Log.i(TAG, "All Saved Devices  Size : " + mConfiguration.getSavedAllDevices().size() +
-                            "\nAll Saved Devices : " + mConfiguration.getSavedAllDevices());
-                    Log.i(TAG, "All Run Thread Size : " + threadControl.size() +
-                            "\nAll Run Thread : " + threadControl);
-                  // mConfiguration.removeSavedAllDevices();
-                    //mIotIgniteHandler.clearAllThing();
-                    //killAllThread();
+                    if (Constant.DEBUG) {
+                        Log.i(TAG, "Get Id : " + getSensorCode
+                                + "\nGet Value : " + getValue);
+
+                        Log.i(TAG, "All Saved Devices  Size : " + mConfiguration.getSavedAllDevices().size() +
+                                "\nAll Saved Devices : " + mConfiguration.getSavedAllDevices());
+                        Log.i(TAG, "All Run Thread Size : " + threadControl.size() +
+                                "\nAll Run Thread : " + threadControl);
+                    }
+                    SensorType.getInstance(mContext).getSensorType("55443322");
+                    //todo : bunu burada unutma
                     String[] getPreferencesKey = mConfiguration.getDeviceCodeThing(getSensorCode);
                     if (getPreferencesKey.length == 1) {
                         if (!TextUtils.isEmpty(getPreferencesKey[0])) {
@@ -83,7 +89,8 @@ public class DataManager {
                     }
                 }
             }
-        }).run();
+        });
+        parseDataThread.run();
     }
 
 
@@ -96,7 +103,9 @@ public class DataManager {
                 threadControl.put(key, new ThreadManager(mContext));
             }
         } else {
-            Log.e(TAG, "There is a thread named" + keys);
+            if (Constant.DEBUG) {
+                Log.e(TAG, "There is a thread named" + keys);
+            }
         }
     }
 
@@ -112,7 +121,7 @@ public class DataManager {
         }
     }
 
-    public void killAllThread(){
+    public void killAllThread() {
         threadControl.clear();
     }
 

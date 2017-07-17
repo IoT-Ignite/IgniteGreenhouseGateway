@@ -11,6 +11,7 @@ import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
 import com.ardic.android.ignitegreenhouse.managers.UartManager;
+import com.ardic.android.ignitegreenhouse.model.Constant;
 
 import java.io.IOException;
 
@@ -34,14 +35,18 @@ public class MainService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
             getIgniteStatus = intent.getBooleanExtra("igniteStatus", false);
-            Log.i(TAG,"Ignite Status : " +getIgniteStatus);
+            if (Constant.DEBUG) {
+                Log.i(TAG, "Ignite Status : " + getIgniteStatus);
+            }
             try {
                 if (getIgniteStatus) {
                     mUartManager=new UartManager(getApplicationContext());
                     mUartManager.openUart();
                 }
             } catch (IOException e) {
-                Log.e(TAG,"Uart Open Failed : " + e);
+                if (Constant.DEBUG) {
+                    Log.e(TAG, "Uart Open Failed : " + e);
+                }
                 return;
             }
         }
