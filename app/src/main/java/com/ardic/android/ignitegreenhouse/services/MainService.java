@@ -9,9 +9,9 @@ import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.ardic.android.ignitegreenhouse.constants.Constant;
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
 import com.ardic.android.ignitegreenhouse.managers.UartManager;
-import com.ardic.android.ignitegreenhouse.model.Constant;
 
 import java.io.IOException;
 
@@ -80,4 +80,5 @@ public class MainService extends Service {
         IotIgniteHandler.getInstance(this).shutdown();
         super.onDestroy();
     }
+
 }

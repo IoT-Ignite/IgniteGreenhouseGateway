@@ -11,7 +11,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
-import com.ardic.android.ignitegreenhouse.model.Constant;
+import com.ardic.android.ignitegreenhouse.constants.Constant;
 
 /**
  * Created by acel on 7/7/17.
@@ -35,13 +35,16 @@ public class ThreadManager extends Thread {
 
     private boolean broadCastFlag = false;
 
+    private static final long CONFIG_READ_DELAY_TIME = 60000;
+
+    private Handler configReadHandler ;
+
     private BroadcastReceiver getIgniteConfig = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             broadCastFlag = true;
         }
     };
-
 
     private Runnable sendDataRunnable = new Runnable() {
         @Override
@@ -53,8 +56,8 @@ public class ThreadManager extends Thread {
                     getMessageFlag = false;
                     if (broadCastFlag) {
                         getDelayTime = (IotIgniteHandler.getInstance(mContext).getConfigurationTime(getNodeName + ":" + getThingName));
-                        if (getDelayTime == -5) {
-                            getDelayTime = (IotIgniteHandler.getInstance(mContext).getConfigurationTime(getNodeName + ":" + getThingName));
+                        if (getDelayTime == -5 || getDelayTime == -1) {
+                            configReadHandler.postDelayed(configRead, CONFIG_READ_DELAY_TIME);
                         }
                         broadCastFlag = false;
                     }
@@ -63,7 +66,7 @@ public class ThreadManager extends Thread {
                     }
                 }
             }
-            if (sendDataHandler!=null) {
+            if (sendDataHandler != null) {
                 sendDataHandler.postDelayed(this, getDelayTime);
             }
         }
@@ -75,11 +78,24 @@ public class ThreadManager extends Thread {
 
         sendDataHandler = new Handler(Looper.getMainLooper());
 
+        configReadHandler = new Handler(Looper.getMainLooper());
         LocalBroadcastManager.getInstance(context).registerReceiver(getIgniteConfig,
                 new IntentFilter(mIotIgniteHandler.INTENT_FILTER_CONFIG));
 
         this.run();
     }
+
+
+    private Runnable configRead = new Runnable() {
+        @Override
+        public void run() {
+            getDelayTime = (IotIgniteHandler.getInstance(mContext).getConfigurationTime(getNodeName + ":" + getThingName));
+            if (getDelayTime == -5 || getDelayTime == -1) {
+                configReadHandler.postDelayed(this, CONFIG_READ_DELAY_TIME);
+            }
+        }
+    };
+
 
     public void parseData(String nodeName, String getThingName, String getValue) {
         if (Constant.DEBUG) {

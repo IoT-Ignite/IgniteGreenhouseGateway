@@ -5,10 +5,8 @@ import android.support.v4.util.ArrayMap;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.ardic.android.ignitegreenhouse.configuration.Configuration;
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
-import com.ardic.android.ignitegreenhouse.model.Constant;
-import com.ardic.android.ignitegreenhouse.model.SensorType;
+import com.ardic.android.ignitegreenhouse.constants.Constant;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -23,7 +21,7 @@ public class DataManager {
 
     private Context mContext;
 
-    private Configuration mConfiguration;
+    private MessageManager mMessageManager;
     private IotIgniteHandler mIotIgniteHandler;
 
     private Map<String, ThreadManager> threadControl = new ArrayMap<>();
@@ -36,11 +34,10 @@ public class DataManager {
         }
         if (context != null) {
             mContext = context;
-            mConfiguration = Configuration.getInstance(mContext);
+            mMessageManager = MessageManager.getInstance(mContext);
             mIotIgniteHandler = IotIgniteHandler.getInstance(mContext);
             threadManager();
             mIotIgniteHandler.updateListener();
-            //mConfiguration.removeSavedAllDevices();
         }
     }
 
@@ -52,24 +49,22 @@ public class DataManager {
     }
 
 
-    public void parseData(final String getSensorCode, final String getValue) {
+    public void parseData(final String getThingCode, final String getValue) {
         Thread parseDataThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                if (!TextUtils.isEmpty(getSensorCode) && !TextUtils.isEmpty(getValue)) {
-
+                if (!TextUtils.isEmpty(getThingCode) && !TextUtils.isEmpty(getValue)) {
                     if (Constant.DEBUG) {
-                        Log.i(TAG, "Get Id : " + getSensorCode
+                        Log.i(TAG, "Get Id : " + getThingCode
                                 + "\nGet Value : " + getValue);
 
-                        Log.i(TAG, "All Saved Devices  Size : " + mConfiguration.getSavedAllDevices().size() +
-                                "\nAll Saved Devices : " + mConfiguration.getSavedAllDevices());
+                        Log.i(TAG, "All Saved Devices  Size : " + mMessageManager.getSavedAllThing().size() +
+                                "\nAll Saved Devices : " + mMessageManager.getSavedAllThing());
                         Log.i(TAG, "All Run Thread Size : " + threadControl.size() +
                                 "\nAll Run Thread : " + threadControl);
                     }
-                    SensorType.getInstance(mContext).getSensorType("55443322");
-                    //todo : bunu burada unutma
-                    String[] getPreferencesKey = mConfiguration.getDeviceCodeThing(getSensorCode);
+
+                    String[] getPreferencesKey = mMessageManager.getThingID(getThingCode);
                     if (getPreferencesKey.length == 1) {
                         if (!TextUtils.isEmpty(getPreferencesKey[0])) {
                             String[] getKeySplit = getPreferencesKey[0].split(":");
@@ -95,12 +90,14 @@ public class DataManager {
 
 
     public void threadManager() {
-        Map<String, ?> getAllSensor = mConfiguration.getSavedAllDevices();
+        Map<String, ?> getAllSensor = mMessageManager.getSavedAllThing();
         Set keys = getAllSensor.keySet();
         if (!threadControl.containsKey(keys)) {
             for (Iterator i = keys.iterator(); i.hasNext(); ) {
                 String key = (String) i.next();
-                threadControl.put(key, new ThreadManager(mContext));
+                if (!key.matches("[0-9a-fA-F][0-9a-fA-F]") && key.length() != 2) {
+                    threadControl.put(key, new ThreadManager(mContext));
+                }
             }
         } else {
             if (Constant.DEBUG) {
@@ -122,7 +119,18 @@ public class DataManager {
     }
 
     public void killAllThread() {
-        threadControl.clear();
+        Set threadKey =threadControl.keySet();
+        Log.e(TAG,"Thread Key : " + threadControl.toString() + " - " + threadKey.iterator().next());
+//todo : hata var düzelt
+        for (Iterator i=threadKey.iterator();i.hasNext();){
+            String key = (String) i.next();
+            Log.e(TAG,"Threaddsdsad : " + key);
+            if (!TextUtils.isEmpty(key)){
+                threadControl.get(key).stopThread();
+                threadControl.remove(key);
+            }
+        }
+        //threadControl.clear();
     }
 
 }

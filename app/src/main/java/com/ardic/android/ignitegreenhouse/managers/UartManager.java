@@ -5,7 +5,7 @@ import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.ardic.android.ignitegreenhouse.model.Constant;
+import com.ardic.android.ignitegreenhouse.constants.Constant;
 import com.google.android.things.pio.PeripheralManagerService;
 import com.google.android.things.pio.UartDevice;
 import com.google.android.things.pio.UartDeviceCallback;
@@ -26,7 +26,7 @@ public class UartManager {
     private UartDevice mUartDevice;
     private PeripheralManagerService peripheralManagerService = new PeripheralManagerService();
 
-    /** UART Configuration Parameters*/
+    /** UART MessageManager Parameters*/
     private static final int BAUD_RATE = 9600;
     private static final int DATA_BITS = 8;
     private static final int STOP_BITS = 1;
