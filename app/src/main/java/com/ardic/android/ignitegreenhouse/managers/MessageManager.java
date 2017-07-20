@@ -8,7 +8,7 @@ import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.constants.Constant;
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
-import com.ardic.android.ignitegreenhouse.model.SensorType;
+import com.ardic.android.ignitegreenhouse.operations.SensorType;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -63,12 +63,10 @@ public class MessageManager {
      * Returning notifications
      */
     private static final String RESPONSE_CREATE_MESSAGE_FORMAT_ERROR = "{\"error\":\"Error Format\"}";
-    public static final String PREFERENCES_ADD_SENSOR_NOT_GET = "N/A";
 
     private Context mContext;
     private IotIgniteHandler mIotIgniteHandler;
-
-
+    private SensorType mSensorType;
     private static MessageManager INSTANCE = null;
 
     private MessageManager(Context context) {
@@ -76,9 +74,13 @@ public class MessageManager {
 
         if (context != null) {
             mIotIgniteHandler = IotIgniteHandler.getInstance(mContext);
+
+            mSensorType = SensorType.getInstance(mContext);
+
             sensors = PreferenceManager.getDefaultSharedPreferences(mContext);
             sensorsEditor = sensors.edit();
 
+            parseSensorJson(Constant.ADD_STATIC_THING_TYPE);
         }
     }
 
@@ -97,6 +99,10 @@ public class MessageManager {
     public void receivedConfigMessage(String receivedNode, String receivedThing, String receivedMessage) {
         if (receivedNode.equals(CONFIGURATION_NODE_STRING)) {
             if (receivedThing.equals(CONFIGURATION_THING_STRING)) {
+                /**
+                 * The incoming "node" and "thing" are checked.
+                 * The data is being sent to the "parseSensorJson" function for processing
+                 */
                 parseSensorJson(receivedMessage);
             }
         }
@@ -104,52 +110,78 @@ public class MessageManager {
 
 
     /**
-     * For create new Node and Thing
+     * The "parseSensorJson" function classifies the incoming "Json" format
+     * data according to the keys we specify and processes them according to the
+     * data contained in them
      */
     private void parseSensorJson(String getAddJson) {
         try {
+            /**Action message received as data*/
             JSONObject mGetConfigurationJson = new JSONObject(getAddJson);
 
-            if (mGetConfigurationJson != null && mGetConfigurationJson.has(ADD_DEVICE_STRING)) {
+            /**Empty control is performed. Checks if there is a parameter to
+             * add a new "thing" in incoming data
+             */
+            if (mGetConfigurationJson != null) {
+                if (mGetConfigurationJson.has(ADD_DEVICE_STRING)) {
 
-                int getAddDataSize = mGetConfigurationJson.getJSONArray(ADD_DEVICE_STRING).length();
+                    /**The number of "nodes" that include the "things" to be added is taken here.*/
+                    int getAddDataSize = mGetConfigurationJson.getJSONArray(ADD_DEVICE_STRING).length();
 
-                for (int nodeNumber = 0; nodeNumber < getAddDataSize; nodeNumber++) {
-                    JSONObject addDeviceArray = new JSONObject(String.valueOf(mGetConfigurationJson.getJSONArray(ADD_DEVICE_STRING).get(nodeNumber)));
-                    if (Constant.DEBUG) {
-                        Log.e(TAG, "GET Node Id : " + addDeviceArray.getString(GET_NODE_ID_STRING));
-                    }
-                    int getAddThingSize = addDeviceArray.getJSONArray(GET_THINGS_STRING).length();
 
-                    for (int thingNumber = 0; thingNumber < getAddThingSize; thingNumber++) {
-                        JSONObject addThingArray = new JSONObject(String.valueOf(addDeviceArray.getJSONArray(GET_THINGS_STRING).get(thingNumber)));
+                    for (int nodeNumber = 0; nodeNumber < getAddDataSize; nodeNumber++) {
+
+                        /**Node Selected*/
+                        JSONObject addDeviceArray = new JSONObject(String.valueOf(mGetConfigurationJson.getJSONArray(ADD_DEVICE_STRING).get(nodeNumber)));
+
                         if (Constant.DEBUG) {
-                            Log.e(TAG, "GET Thing Code : " + addThingArray.getString(Constant.GET_THING_CODE_STRING));
-                            Log.e(TAG, "GET Thing Label : " + addThingArray.getString(GET_THING_LABEL_STRING));
+                            Log.e(TAG, "GET Node Id : " + addDeviceArray.getString(GET_NODE_ID_STRING));
                         }
-                        addJsonControl(addDeviceArray.getString(GET_NODE_ID_STRING), addThingArray.getString(Constant.GET_THING_CODE_STRING), addThingArray.getString(GET_THING_LABEL_STRING));
+
+                        /**The number of "things" under the selected node is taken here.*/
+                        int getAddThingSize = addDeviceArray.getJSONArray(GET_THINGS_STRING).length();
+
+                        for (int thingNumber = 0; thingNumber < getAddThingSize; thingNumber++) {
+
+                            /**Thing Selected*/
+                            JSONObject addThingArray = new JSONObject(String.valueOf(addDeviceArray.getJSONArray(GET_THINGS_STRING).get(thingNumber)));
+                            if (Constant.DEBUG) {
+                                Log.e(TAG, "GET Thing Code : " + addThingArray.getString(Constant.GET_THING_CODE_STRING));
+                                Log.e(TAG, "GET Thing Label : " + addThingArray.getString(GET_THING_LABEL_STRING));
+                            }
+                            /**Send selected node and thing information to addJsonControl function*/
+                            addJsonControl(addDeviceArray.getString(GET_NODE_ID_STRING), addThingArray.getString(Constant.GET_THING_CODE_STRING), addThingArray.getString(GET_THING_LABEL_STRING));
+                        }
                     }
                 }
-            }
-            // todo : thinge göre remove yap
-            if (mGetConfigurationJson != null && mGetConfigurationJson.has(REMOVE_ALL_DEVICE_STRING)) {
-                if (mGetConfigurationJson.getBoolean(REMOVE_ALL_DEVICE_STRING)) {
-                    removeSavedAllThing();
+
+                /**Used to reset the information on the whole device.
+                 * The user will not be open.
+                 */
+                if (mGetConfigurationJson.has(REMOVE_ALL_DEVICE_STRING)) {
+                    if (mGetConfigurationJson.getBoolean(REMOVE_ALL_DEVICE_STRING)) {
+                        removeSavedAllThing();
+                    }
                 }
-            }
 
-            if (mGetConfigurationJson != null && mGetConfigurationJson.has(Constant.ADD_NEW_THING_TYPE)) {
-                SensorType.getInstance(mContext).addSensorType(mGetConfigurationJson);
-            }
+                /**Is used to delete the "node" - "thing" information recorded in the wrong format.
+                 * The user will not be open.
+                 */
+                if (mGetConfigurationJson.has(Constant.REMOVE_THING_STRING)) {
+                    JSONObject removeThing = mGetConfigurationJson.getJSONObject(Constant.REMOVE_THING_STRING);
+                    removeThing.getString(GET_NODE_ID_STRING);
+                    removeSavedThing(removeThing.getString(GET_NODE_ID_STRING), removeThing.getString(GET_THING_LABEL_STRING));
+                }
 
-            if (mGetConfigurationJson != null && mGetConfigurationJson.has(Constant.REMOVE_THING_TYPE)) {
-                SensorType.getInstance(mContext).removeThingType(mGetConfigurationJson);
-            }
+                /**Used to add new sensor type.*/
+                if (mGetConfigurationJson.has(Constant.REMOVE_THING_TYPE)) {
+                    mSensorType.removeThingType(mGetConfigurationJson);
+                }
 
-            if (mGetConfigurationJson != null && mGetConfigurationJson.has(Constant.REMOVE_THING_STRING)) {
-                JSONObject removeThing=mGetConfigurationJson.getJSONObject(Constant.REMOVE_THING_STRING);
-                removeThing.getString(GET_NODE_ID_STRING);
-                removeSavedThing(removeThing.getString(GET_NODE_ID_STRING),removeThing.getString(GET_THING_LABEL_STRING));
+                /**Used to remove sensor type.*/
+                if (mGetConfigurationJson.has(Constant.ADD_NEW_THING_TYPE)) {
+                    mSensorType.addSensorType(mGetConfigurationJson);
+                }
             }
 
         } catch (JSONException e) {
@@ -217,7 +249,7 @@ public class MessageManager {
      * Thing Control
      */
     public String getSavedThing(String getNode, String getThingLabel) {
-        return sensors.getString(getNode + ":" + getThingLabel, PREFERENCES_ADD_SENSOR_NOT_GET);
+        return sensors.getString(getNode + ":" + getThingLabel, Constant.PREFERENCES_ADD_SENSOR_NOT_GET);
 
     }
 
@@ -226,11 +258,12 @@ public class MessageManager {
     }
 
     public void removeSavedThing(String getNode, String getThingLabel) {
-        if (!TextUtils.isEmpty(getNode) && !TextUtils.isEmpty(getThingLabel) && sensors.contains(getNode+":"+getThingLabel)) {
-
+        if (!TextUtils.isEmpty(getNode) && !TextUtils.isEmpty(getThingLabel) && sensors.contains(getNode + ":" + getThingLabel)) {
 
             sensorsEditor.remove(getNode + ":" + getThingLabel);
             sensorsEditor.commit();
+
+            DataManager.getInstance(mContext).killThread(getNode, getThingLabel);
 
             if (Constant.DEBUG) {
                 Log.e(TAG, "Removed Node : " + getNode +
@@ -247,29 +280,15 @@ public class MessageManager {
         }
     }
 
-    // todo : unutma bunu
-    public void removeSavedNode(String getNode) {
-        Map<String, ?> getAllSensor = sensors.getAll();
-        Set keys = getAllSensor.keySet();
-        for (Iterator i = keys.iterator(); i.hasNext(); ) {
-            String key = (String) i.next();
-            String[] split = key.split(":");
-            if (split[0].equals(getNode)) {
-                sensorsEditor.remove(key);
-                sensorsEditor.commit();
-                if (Constant.DEBUG) {
-                    Log.e(TAG, "Removed Node : " + getNode);
-                }
-                mIotIgniteHandler.sendConfiguratorThingMessage("{\"removedNodeResponse\":\"" + getNode + "\"}");
-            }
-        }
-    }
 
-    public void removeSavedAllThing() {
+
+
+    private void removeSavedAllThing() {
         DataManager.getInstance(mContext).killAllThread();
-        //sensorsEditor.clear();
-       // sensorsEditor.commit();
-        //mIotIgniteHandler.clearAllThing();
+
+        sensorsEditor.clear();
+        sensorsEditor.commit();
+        mIotIgniteHandler.clearAllThing();
 
         if (Constant.DEBUG) {
             Log.e(TAG, "Removed All Saved ...");
@@ -317,5 +336,23 @@ public class MessageManager {
             }
         }
         return null;
+    }
+
+    // todo : unutma bunu
+    public void removeSavedNode(String getNode) {
+        Map<String, ?> getAllSensor = sensors.getAll();
+        Set keys = getAllSensor.keySet();
+        for (Iterator i = keys.iterator(); i.hasNext(); ) {
+            String key = (String) i.next();
+            String[] split = key.split(":");
+            if (split[0].equals(getNode)) {
+                sensorsEditor.remove(key);
+                sensorsEditor.commit();
+                if (Constant.DEBUG) {
+                    Log.e(TAG, "Removed Node : " + getNode);
+                }
+                mIotIgniteHandler.sendConfiguratorThingMessage("{\"removedNodeResponse\":\"" + getNode + "\"}");
+            }
+        }
     }
 }

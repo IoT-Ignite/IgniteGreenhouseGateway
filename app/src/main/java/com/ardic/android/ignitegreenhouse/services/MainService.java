@@ -22,7 +22,7 @@ public class MainService extends Service {
      */
 
     private static final String TAG =MainService.class.getSimpleName();
-    private static final String INTENT_FILTER_IGNITE_STATUS = "igniteConnect";
+
     private UartManager mUartManager;
 
     private boolean getIgniteStatus= false;
@@ -34,7 +34,7 @@ public class MainService extends Service {
     private BroadcastReceiver igniteStatusMessage = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            getIgniteStatus = intent.getBooleanExtra("igniteStatus", false);
+            getIgniteStatus = intent.getBooleanExtra(Constant.IGNITE_STATUS_BROADCAST, false);
             if (Constant.DEBUG) {
                 Log.i(TAG, "Ignite Status : " + getIgniteStatus);
             }
@@ -65,7 +65,7 @@ public class MainService extends Service {
     public void onCreate() {
         super.onCreate();
         LocalBroadcastManager.getInstance(this).registerReceiver(igniteStatusMessage,
-                new IntentFilter(INTENT_FILTER_IGNITE_STATUS));
+                new IntentFilter(Constant.INTENT_FILTER_IGNITE_STATUS));
         IotIgniteHandler.getInstance(this).start();
     }
 

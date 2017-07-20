@@ -18,6 +18,7 @@ import java.util.Set;
 
 public class DataManager {
     private static final String TAG = DataManager.class.getSimpleName();
+    private static final String THREAD_CONTROL_REGEXP="[0-9a-fA-F][0-9a-fA-F]";
 
     private Context mContext;
 
@@ -54,6 +55,7 @@ public class DataManager {
             @Override
             public void run() {
                 if (!TextUtils.isEmpty(getThingCode) && !TextUtils.isEmpty(getValue)) {
+
                     if (Constant.DEBUG) {
                         Log.i(TAG, "Get Id : " + getThingCode
                                 + "\nGet Value : " + getValue);
@@ -65,20 +67,11 @@ public class DataManager {
                     }
 
                     String[] getPreferencesKey = mMessageManager.getThingID(getThingCode);
-                    if (getPreferencesKey.length == 1) {
-                        if (!TextUtils.isEmpty(getPreferencesKey[0])) {
-                            String[] getKeySplit = getPreferencesKey[0].split(":");
-                            if (!TextUtils.isEmpty(getKeySplit[0]) && !TextUtils.isEmpty(getKeySplit[1]) && !TextUtils.isEmpty(getValue) && threadControl.containsKey(getPreferencesKey[0])) {
-                                threadControl.get(getPreferencesKey[0]).parseData(getKeySplit[0], getKeySplit[1], getValue);
-                            }
-                        }
-                    } else {
-                        for (int i = 0; i < getPreferencesKey.length; i++) {
-                            if (!TextUtils.isEmpty(getPreferencesKey[i])) {
-                                String[] getKeySplit = getPreferencesKey[i].split(":");
-                                if (!TextUtils.isEmpty(getKeySplit[0]) && !TextUtils.isEmpty(getKeySplit[1]) && !TextUtils.isEmpty(getValue) && threadControl.containsKey(getPreferencesKey[i])) {
-                                    threadControl.get(getPreferencesKey[i]).parseData(getKeySplit[0], getKeySplit[1], getValue);
-                                }
+                    for (int i = 0; i < getPreferencesKey.length; i++) {
+                        if (!TextUtils.isEmpty(getPreferencesKey[i])) {
+                            String[] getKeySplit = getPreferencesKey[i].split(":");
+                            if (!TextUtils.isEmpty(getKeySplit[0]) && !TextUtils.isEmpty(getKeySplit[1]) && !TextUtils.isEmpty(getValue) && threadControl.containsKey(getPreferencesKey[i])) {
+                                threadControl.get(getPreferencesKey[i]).parseData(getKeySplit[0], getKeySplit[1], getValue);
                             }
                         }
                     }
@@ -95,7 +88,9 @@ public class DataManager {
         if (!threadControl.containsKey(keys)) {
             for (Iterator i = keys.iterator(); i.hasNext(); ) {
                 String key = (String) i.next();
-                if (!key.matches("[0-9a-fA-F][0-9a-fA-F]") && key.length() != 2) {
+
+                /**This control is used to separate the thread type from the sensor type*/
+                if (!key.matches(THREAD_CONTROL_REGEXP) && key.length() != 2) {
                     threadControl.put(key, new ThreadManager(mContext));
                 }
             }
@@ -119,18 +114,7 @@ public class DataManager {
     }
 
     public void killAllThread() {
-        Set threadKey =threadControl.keySet();
-        Log.e(TAG,"Thread Key : " + threadControl.toString() + " - " + threadKey.iterator().next());
-//todo : hata var düzelt
-        for (Iterator i=threadKey.iterator();i.hasNext();){
-            String key = (String) i.next();
-            Log.e(TAG,"Threaddsdsad : " + key);
-            if (!TextUtils.isEmpty(key)){
-                threadControl.get(key).stopThread();
-                threadControl.remove(key);
-            }
-        }
-        //threadControl.clear();
+        threadControl.clear();
     }
 
 }

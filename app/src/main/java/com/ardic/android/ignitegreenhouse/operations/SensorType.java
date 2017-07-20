@@ -1,4 +1,4 @@
-package com.ardic.android.ignitegreenhouse.model;
+package com.ardic.android.ignitegreenhouse.operations;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -18,7 +18,7 @@ import org.json.JSONObject;
  */
 
 public class SensorType {
-
+// todo : Sonuna operations ekle
     private static final String TAG = SensorType.class.getSimpleName();
     private static SensorType INSTANCE = null;
 
@@ -124,7 +124,6 @@ public class SensorType {
                         sensorCodePreferences.contains(removedTypeKey)) {
 
                     Log.e(TAG, "Remove Sensor Type : " + removedTypeKey);
-
 
 
                     mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(new JSONObject()

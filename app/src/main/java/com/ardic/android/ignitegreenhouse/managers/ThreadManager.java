@@ -24,7 +24,7 @@ public class ThreadManager extends Thread {
     private String getNodeName;
     private String getThingName;
     private String getValue;
-    private long getDelayTime = 10000L;
+    private long getDelayTime = -5;
     private boolean getMessageFlag = false;
     private IotIgniteHandler mIotIgniteHandler;
 
@@ -56,7 +56,7 @@ public class ThreadManager extends Thread {
                     getMessageFlag = false;
                     if (broadCastFlag) {
                         getDelayTime = (IotIgniteHandler.getInstance(mContext).getConfigurationTime(getNodeName + ":" + getThingName));
-                        if (getDelayTime == -5 || getDelayTime == -1) {
+                        if (getDelayTime == -5 || getDelayTime == -1 ) {
                             configReadHandler.postDelayed(configRead, CONFIG_READ_DELAY_TIME);
                         }
                         broadCastFlag = false;
@@ -80,7 +80,8 @@ public class ThreadManager extends Thread {
 
         configReadHandler = new Handler(Looper.getMainLooper());
         LocalBroadcastManager.getInstance(context).registerReceiver(getIgniteConfig,
-                new IntentFilter(mIotIgniteHandler.INTENT_FILTER_CONFIG));
+                new IntentFilter(Constant.INTENT_FILTER_CONFIG));
+        broadCastFlag=true;
 
         this.run();
     }
