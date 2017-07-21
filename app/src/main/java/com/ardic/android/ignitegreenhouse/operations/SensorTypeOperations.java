@@ -17,29 +17,25 @@ import org.json.JSONObject;
  * Created by acel on 7/14/17.
  */
 
-public class SensorType {
-// todo : Sonuna operations ekle
-    private static final String TAG = SensorType.class.getSimpleName();
-    private static SensorType INSTANCE = null;
+public class SensorTypeOperations {
+
+    private static final String TAG = SensorTypeOperations.class.getSimpleName();
+    private static SensorTypeOperations INSTANCE = null;
 
     private SharedPreferences sensorCodePreferences;
     private SharedPreferences.Editor sensorCodeEditor;
 
-    private static final String THING_CODE_STRING = "thingCode";
-    private static final String THING_SPECIFIC = "thingSpecific";
+
     private static final String ERROR_RESPONSE_STRING = "errorNewThingResponse";
-    private static final String THING_ID_STRING = "thingId";
-    private static final String THING_TYPE_STRING = "thingTypeString";
-    private static final String THING_VENDOR_STRING = "thingVendor";
-    private static final String THING_TYPE = "thingType";
     private static final String DESCRIPTION_STRING = "description";
     private static final String VALUE_AVAILABLE__ERROR_STRING = "Value Available";
     private static final String VALUE_EMPTY_ERROR_STRING = "The submitted parameters can not be empty";
+    private static final String REMOVED_THING_TYPE_RESPONSE = "removedThingType";
 
     private Context mContext;
     private IotIgniteHandler mIotIgniteHandler;
 
-    private SensorType(Context context) {
+    private SensorTypeOperations(Context context) {
         if (!context.equals(null)) {
             mContext = context;
             mIotIgniteHandler = IotIgniteHandler.getInstance(mContext);
@@ -48,9 +44,9 @@ public class SensorType {
         }
     }
 
-    public static synchronized SensorType getInstance(Context context) {
+    public static synchronized SensorTypeOperations getInstance(Context context) {
         if (INSTANCE == null) {
-            INSTANCE = new SensorType(context);
+            INSTANCE = new SensorTypeOperations(context);
         }
         return INSTANCE;
     }
@@ -63,21 +59,21 @@ public class SensorType {
             Log.i(TAG, "Get new Sensor " + addObject.toString());
         }
         try {
-            if (!TextUtils.isEmpty(addObject.toString()) && addObject.has(Constant.ADD_NEW_THING_TYPE)) {
-                JSONArray addThingArray = addObject.getJSONArray(Constant.ADD_NEW_THING_TYPE);
+            if (!TextUtils.isEmpty(addObject.toString()) && addObject.has(Constant.ADD_NEW_THING_TYPE_JSON_KEY)) {
+                JSONArray addThingArray = addObject.getJSONArray(Constant.ADD_NEW_THING_TYPE_JSON_KEY);
                 if (Constant.DEBUG) {
                     Log.i(TAG, "Thing Array : " + addThingArray.toString());
                 }
                 int newSensorSize = addThingArray.length();
                 for (int sensorNumber = 0; sensorNumber < newSensorSize; sensorNumber++) {
                     JSONObject addNewThing = new JSONObject(String.valueOf(addThingArray.getJSONObject(sensorNumber)));
-                    if (!TextUtils.isEmpty(addNewThing.toString()) && addNewThing.has(THING_CODE_STRING) && addNewThing.has(THING_SPECIFIC)) {
-                        JSONObject thingSpecific = addNewThing.getJSONObject(THING_SPECIFIC);
-                        String thingCode = addNewThing.getString(THING_CODE_STRING);
-                        String thingId = thingSpecific.getString(THING_ID_STRING);
-                        String thingTypeString = thingSpecific.getString(THING_TYPE_STRING);
-                        String thingVendor = thingSpecific.getString(THING_VENDOR_STRING);
-                        String thingType = thingSpecific.getString(THING_TYPE);
+                    if (!TextUtils.isEmpty(addNewThing.toString()) && addNewThing.has(Constant.THING_CODE_JSON_KEY) && addNewThing.has(Constant.THING_SPECIFIC_JSON_KEY)) {
+                        JSONObject thingSpecific = addNewThing.getJSONObject(Constant.THING_SPECIFIC_JSON_KEY);
+                        String thingCode = addNewThing.getString(Constant.THING_CODE_JSON_KEY);
+                        String thingId = thingSpecific.getString(Constant.THING_LABEL_JSON_KEY);
+                        String thingTypeString = thingSpecific.getString(Constant.THING_TYPE_STRING_JSON_KEY);
+                        String thingVendor = thingSpecific.getString(Constant.THING_VENDOR_JSON_KEY);
+                        String thingType = thingSpecific.getString(Constant.THING_TYPE_JSON_KEY);
                         if (!TextUtils.isEmpty(thingCode) && !TextUtils.isEmpty(thingId) && !TextUtils.isEmpty(thingTypeString) && !TextUtils.isEmpty(thingVendor) && !TextUtils.isEmpty(thingType)) {
                             if (!sensorCodePreferences.contains(thingCode)) {
                                 sensorCodeEditor.putString(thingCode, thingSpecific.toString());
@@ -85,20 +81,23 @@ public class SensorType {
                                 if (Constant.DEBUG) {
                                     Log.i(TAG, "Available Preferences : " + sensorCodePreferences.getAll());
                                 }
-                                JSONObject responseCreateNewSensorTrue = new JSONObject().put(Constant.ADD_NEW_THING_TYPE, new JSONObject().put(THING_CODE_STRING, thingCode).put(THING_SPECIFIC, thingSpecific));
+                                JSONObject responseCreateNewSensorTrue = new JSONObject().put(Constant.ADD_NEW_THING_TYPE_JSON_KEY, new JSONObject().put(Constant.THING_CODE_JSON_KEY, thingCode).put(Constant.THING_SPECIFIC_JSON_KEY, thingSpecific));
                                 mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(responseCreateNewSensorTrue));
                             } else {
                                 if (Constant.DEBUG) {
                                     Log.e(TAG, "<" + thingCode + "> Value Available !");
                                 }
-                                JSONObject responseCreateNewSensorFalse = new JSONObject().put(ERROR_RESPONSE_STRING, new JSONObject().put(THING_CODE_STRING, thingCode).put(THING_SPECIFIC, thingSpecific).put(DESCRIPTION_STRING, VALUE_AVAILABLE__ERROR_STRING));
+                                JSONObject responseCreateNewSensorFalse = new JSONObject().put(ERROR_RESPONSE_STRING, new JSONObject().put(Constant.THING_CODE_JSON_KEY, thingCode).put(Constant.THING_SPECIFIC_JSON_KEY, thingSpecific).put(DESCRIPTION_STRING, VALUE_AVAILABLE__ERROR_STRING));
                                 mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(responseCreateNewSensorFalse));
                             }
                         } else {
                             if (Constant.DEBUG) {
                                 Log.e(TAG, "The submitted parameters can not be empty!");
                             }
-                            JSONObject responseCreateNewSensorFalse = new JSONObject().put(ERROR_RESPONSE_STRING, new JSONObject().put(THING_CODE_STRING, thingCode).put(THING_SPECIFIC, thingSpecific).put(DESCRIPTION_STRING, VALUE_EMPTY_ERROR_STRING));
+                            JSONObject responseCreateNewSensorFalse = new JSONObject().put(ERROR_RESPONSE_STRING, new JSONObject()
+                                    .put(Constant.THING_CODE_JSON_KEY, thingCode)
+                                    .put(Constant.THING_SPECIFIC_JSON_KEY, thingSpecific)
+                                    .put(DESCRIPTION_STRING, VALUE_EMPTY_ERROR_STRING));
                             mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(responseCreateNewSensorFalse));
                         }
                     }
@@ -111,15 +110,14 @@ public class SensorType {
 
     }
 
-    private static final String REMOVED_THING_TYPE_RESPONSE = "removedThingType";
 
     public void removeThingType(JSONObject removeJson) {
         try {
             if (removeJson.has(Constant.REMOVE_THING_TYPE)) {
                 JSONObject removeObject = removeJson.getJSONObject(Constant.REMOVE_THING_TYPE);
-                String removedTypeKey = removeObject.getString(Constant.GET_THING_CODE_STRING);
-                if (removeObject.has(Constant.GET_THING_CODE_STRING) &&
-                        !removeObject.isNull(Constant.GET_THING_CODE_STRING) &&
+                String removedTypeKey = removeObject.getString(Constant.THING_CODE_JSON_KEY);
+                if (removeObject.has(Constant.THING_CODE_JSON_KEY) &&
+                        !removeObject.isNull(Constant.THING_CODE_JSON_KEY) &&
                         !TextUtils.isEmpty(removedTypeKey) &&
                         sensorCodePreferences.contains(removedTypeKey)) {
 
@@ -128,8 +126,8 @@ public class SensorType {
 
                     mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(new JSONObject()
                             .put(REMOVED_THING_TYPE_RESPONSE, new JSONObject()
-                                    .put(Constant.GET_THING_CODE_STRING, removedTypeKey)
-                                    .put(THING_TYPE, String.valueOf(sensorCodePreferences.getString(removedTypeKey, "N/A"))))));
+                                    .put(Constant.THING_CODE_JSON_KEY, removedTypeKey)
+                                    .put(Constant.THING_TYPE_JSON_KEY, String.valueOf(sensorCodePreferences.getString(removedTypeKey, "N/A"))))));
 
                     sensorCodeEditor.remove(removedTypeKey);
                     sensorCodeEditor.commit();
@@ -143,12 +141,12 @@ public class SensorType {
     }
 
     public String[] getSensorType(String sensorCode) {
-        if (!TextUtils.isEmpty(sensorCode) && sensorCode.length() == Constant.NUMBER_OF_CHARACTERS && sensorCode.matches(Constant.REGEXP_ID)) {
+        if (!TextUtils.isEmpty(sensorCode) && sensorCode.length() == Constant.NUMBER_OF_CHARACTERS && sensorCode.matches(Constant.SENSOR_CONTROL_REGEXP)) {
             String parseSensorCode = sensorCode.substring(2, 4);
             if (sensorCodePreferences.contains(parseSensorCode)) {
                 try {
                     JSONObject getSensorType = new JSONObject(sensorCodePreferences.getString(parseSensorCode, "{\"null\":true}"));
-                    String[] sensorTypeArray = {getSensorType.getString("thingTypeString"), getSensorType.getString("thingVendor"), getSensorType.getString("thingType")};
+                    String[] sensorTypeArray = {getSensorType.getString("thingTypeString"), getSensorType.getString(Constant.THING_VENDOR_JSON_KEY), getSensorType.getString("thingType")};
                     return sensorTypeArray;
                 } catch (JSONException e) {
                     e.printStackTrace();

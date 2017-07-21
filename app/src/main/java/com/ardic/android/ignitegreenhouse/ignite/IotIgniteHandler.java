@@ -10,7 +10,9 @@ import android.util.Log;
 import com.ardic.android.ignitegreenhouse.constants.Constant;
 import com.ardic.android.ignitegreenhouse.managers.DataManager;
 import com.ardic.android.ignitegreenhouse.managers.MessageManager;
-import com.ardic.android.ignitegreenhouse.operations.SensorType;
+import com.ardic.android.ignitegreenhouse.managers.ThreadManager;
+import com.ardic.android.ignitegreenhouse.operations.NodeThingOperations;
+import com.ardic.android.ignitegreenhouse.operations.SensorTypeOperations;
 import com.ardic.android.iotignite.callbacks.ConnectionCallback;
 import com.ardic.android.iotignite.enumerations.NodeType;
 import com.ardic.android.iotignite.enumerations.ThingCategory;
@@ -133,17 +135,16 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
 
         registerConfigurator();
 
-        DataManager.getInstance(appContext).threadManager();
+        ThreadManager.getInstance(appContext).threadManager();
 
     }
 
     @Override
     public void onDisconnected() {
-        //todo bağlantı kesilirse kapa herşeyi
         if (Constant.DEBUG) {
             Log.i(TAG, "Ignite Disconnected");
         }
-        DataManager.getInstance(appContext).killAllThread();
+        ThreadManager.getInstance(appContext).killAllThread();
 
         // start watchdog again here.
         igniteConnected = false;
@@ -184,7 +185,6 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
         /**
          * Thing action message will be handled here. Call thingActionData.getMessage()
          */
-        //todo: türkçe karakter
         mMessageManager.receivedConfigMessage(s, s1, thingActionData.getMessage());
         if (Constant.DEBUG) {
             Log.i(TAG, "Action Node : " + s);
@@ -204,7 +204,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
             Thread removeThingThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    mMessageManager.removeSavedThing(s, s1);
+                    NodeThingOperations.getInstance(appContext).removeSavedThing(s, s1);
                 }
             });
             removeThingThread.run();
@@ -212,7 +212,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
             Thread killAllThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    mDataManager.killThread(s, s1);
+                    ThreadManager.getInstance(appContext).killThread(s, s1);
                 }
             });
             killAllThread.run();
@@ -385,7 +385,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
     public boolean registerThing(String getThingLabel) {
         ThingDataType getDataType = ThingDataType.STRING;
 
-        String[] getSensorType = SensorType.getInstance(appContext).getSensorType(mMessageManager.getSavedThing(mRegisterNode.getNodeID(), getThingLabel));
+        String[] getSensorType = SensorTypeOperations.getInstance(appContext).getSensorType(NodeThingOperations.getInstance(appContext).getSavedThing(mRegisterNode.getNodeID(), getThingLabel));
         String thingTypeString = null;
         String thingVendorString = null;
         String thingType;
@@ -418,8 +418,6 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                         null
                 );
             }
-        }else {
-            Log.e(TAG, "Not Regisger ");
         }
 
         if (mRegisterThing != null) {
@@ -433,11 +431,8 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                 mRegisterThing.setConnected(true, "");
                 return true;
             }
-        }else {
-            Log.e(TAG,"Thing   Null.");
         }
         return false;
-
     }
 
 
@@ -462,7 +457,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
             public void run() {
                 if (!TextUtils.isEmpty(nodeName) && !TextUtils.isEmpty(thingName) && (getThingList(nodeName, thingName) != null)) {
                     findThing = getThingList(nodeName, thingName);
-                } else if (!mMessageManager.getSavedThing(nodeName, thingName).equals(Constant.PREFERENCES_ADD_SENSOR_NOT_GET) && getThingList(nodeName, thingName) == null) {
+                } else if (!NodeThingOperations.getInstance(appContext).getSavedThing(nodeName, thingName).equals(Constant.PREFERENCES_ADD_SENSOR_NOT_GET) && getThingList(nodeName, thingName) == null) {
                     if (Constant.DEBUG) {
                         Log.e(TAG, "Not Find Cloud : Node : " + nodeName + " : " + thingName);
                     }
@@ -501,26 +496,6 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
         }
         return null;
     }
-    /*
-    todo : Hata çöz
-    /AndroidRuntime: FATAL EXCEPTION: main
-     Process: com.ardic.android.ignitegreenhouse, PID: 31101
-    java.lang.ArrayIndexOutOfBoundsException: length=0; index=0
-       at java.util.concurrent.CopyOnWriteArrayList.get(CopyOnWriteArrayList.java:121)
-       at com.ardic.android.iotignite.things.ThingManager.getEveryThing(Unknown Source)
-       at com.ardic.android.iotignite.nodes.Node.getEveryThing(Unknown Source)
-       at com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler.getEveryThing(IotIgniteHandler.java:466)
-       at com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler.getConfigurationTime(IotIgniteHandler.java:566)
-       at com.ardic.android.ignitegreenhouse.managers.ThreadManager$2.run(ThreadManager.java:55)
-       at android.os.Handler.handleCallback(Handler.java:751)
-       at android.os.Handler.dispatchMessage(Handler.java:95)
-       at android.os.Looper.loop(Looper.java:154)
-       at android.app.ActivityThread.main(ActivityThread.java:6077)
-       at java.lang.reflect.Method.invoke(Native Method)
-       at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:865)
-       at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:755)
-
-     */
 
     /**
      * Deletes all registered "node" and "thing"
@@ -565,25 +540,6 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
         }
         return null;
     }
-    //TODO HATA BUL
-    /*
-    FATAL EXCEPTION: main
-    Process: com.ardic.android.ignitegreenhouse, PID: 3309
-    java.lang.NullPointerException: Attempt to invoke interface method 'java.util.Iterator java.util.List.iterator()' on a null object reference
-        at com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler.getThingList(IotIgniteHandler.java:567)
-        at com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler$4.run(IotIgniteHandler.java:472)
-        at java.lang.Thread.run(Thread.java:761)
-        at com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler.sendData(IotIgniteHandler.java:499)
-        at com.ardic.android.ignitegreenhouse.managers.ThreadManager$2.run(ThreadManager.java:51)
-        at android.os.Handler.handleCallback(Handler.java:751)
-        at android.os.Handler.dispatchMessage(Handler.java:95)
-        at android.os.Looper.loop(Looper.java:154)
-        at android.app.ActivityThread.main(ActivityThread.java:6077)
-        at java.lang.reflect.Method.invoke(Native Method)
-        at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:865)
-        at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:755)
-
-     */
 
     /**
      * Register things and assign listener

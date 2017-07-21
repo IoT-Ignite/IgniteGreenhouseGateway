@@ -187,7 +187,7 @@ public class UartManager {
                                         getSensorValue = mDataObject.getString(GET_VALUE_STRING);
 
                                         /** Control end Send Data Manager*/
-                                        if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(Constant.REGEXP_ID)) {
+                                        if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(Constant.SENSOR_CONTROL_REGEXP)) {
                                             mDataManager.parseData(getSensorId, getSensorValue);
                                             if (Constant.DEBUG) {
                                                 Log.e(TAG, "GET UART DATA : " + getSensorId + " - " + getSensorValue);
