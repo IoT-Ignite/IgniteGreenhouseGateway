@@ -58,6 +58,7 @@ public class MessageManager {
     private static final String RESPONSE_CREATE_MESSAGE_THING_STRING = "createThing";
     private static final String RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_STRING = "descriptions";
     private static final String RESPONSE_CREATE_MESSAGE_DESCRIPTIONS = "The received data have already been registered. Please delete first !";
+    private static final String RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_SENSOR_TYPE = "We have not found your sensor system";
 
     /**
      * Returning notifications
@@ -200,7 +201,7 @@ public class MessageManager {
         getNode = getNode.replace(" ", "");
         getThingLabel = getThingLabel.replace(" ", "");
 
-        if (!sensors.contains(getNode + ":" + getThingLabel)) {
+        if (!sensors.contains(getNode + ":" + getThingLabel) && SensorType.getInstance(mContext).getSensorType(getThing) != null) {
             sensorsEditor.putString(getNode + ":" + getThingLabel, getThing);
             sensorsEditor.commit();
             if (Constant.DEBUG) {
@@ -223,21 +224,37 @@ public class MessageManager {
         } else {
 
             try {
-                JSONObject returnCreateFalse = new JSONObject().put(RESPONSE_CREATE_MESSAGE_STRING, new JSONObject()
-                        .put(RESPONSE_CREATE_MESSAGE_NODE_STRING, false)
-                        .put(RESPONSE_CREATE_MESSAGE_THING_STRING, false)
-                        .put(RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_STRING, RESPONSE_CREATE_MESSAGE_DESCRIPTIONS));
+                if (sensors.contains(getNode + ":" + getThingLabel)) {
+                    JSONObject returnCreateFalse = new JSONObject().put(RESPONSE_CREATE_MESSAGE_STRING, new JSONObject()
+                            .put(RESPONSE_CREATE_MESSAGE_NODE_STRING, false)
+                            .put(RESPONSE_CREATE_MESSAGE_THING_STRING, false)
+                            .put(RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_STRING, RESPONSE_CREATE_MESSAGE_DESCRIPTIONS));
 
-                returnCreateFalse.put(GET_NODE_ID_STRING, getNode);
-                returnCreateFalse.put(GET_THING_LABEL_STRING, getThingLabel);
-                returnCreateFalse.put(GET_THING_LABEL_STRING, getThing);
+                    returnCreateFalse.put(GET_NODE_ID_STRING, getNode);
+                    returnCreateFalse.put(GET_THING_LABEL_STRING, getThingLabel);
+                    returnCreateFalse.put(GET_THING_LABEL_STRING, getThing);
 
-                mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(returnCreateFalse));
+                    mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(returnCreateFalse));
+                }
+                if (SensorType.getInstance(mContext).getSensorType(getThing) == null) {
+                    JSONObject returnCreateFalse = new JSONObject().put(RESPONSE_CREATE_MESSAGE_STRING, new JSONObject()
+                            .put(RESPONSE_CREATE_MESSAGE_NODE_STRING, false)
+                            .put(RESPONSE_CREATE_MESSAGE_THING_STRING, false)
+                            .put(RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_STRING, RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_SENSOR_TYPE));
+
+                    returnCreateFalse.put(GET_NODE_ID_STRING, getNode);
+                    returnCreateFalse.put(GET_THING_LABEL_STRING, getThingLabel);
+                    returnCreateFalse.put(GET_THING_LABEL_STRING, getThing);
+
+                    mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(returnCreateFalse));
+                }
 
             } catch (JSONException e) {
                 mIotIgniteHandler.sendConfiguratorThingMessage(RESPONSE_CREATE_MESSAGE_FORMAT_ERROR);
                 e.printStackTrace();
             }
+
+
             if (Constant.DEBUG) {
                 Log.i(TAG, "The received thing have already been registered. Please delete first !");
             }
@@ -279,8 +296,6 @@ public class MessageManager {
             }
         }
     }
-
-
 
 
     private void removeSavedAllThing() {

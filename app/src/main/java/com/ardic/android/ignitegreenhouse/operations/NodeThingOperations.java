@@ -6,5 +6,5 @@ package com.ardic.android.ignitegreenhouse.operations;
 
 public class NodeThingOperations {
     //todo : burada Message Manager de yapılan node thing işlemeri yer alacak
-    // todo threadmanager ismini değiştirip operations un altına al
+
 }

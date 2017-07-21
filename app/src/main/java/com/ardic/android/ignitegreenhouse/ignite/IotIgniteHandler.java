@@ -64,11 +64,11 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
     private static final String CONFIGURATOR_TYPE_THING = "ARDIC Configurator";
     private static final String CONFIGURATOR_TYPE_VENDOR = "ARDIC";
 
-    private static final String APPLICATION_DESTROYED_STRING="Application Destroyed";
+    private static final String APPLICATION_DESTROYED_STRING = "Application Destroyed";
 
-    private static final String THING_TYPE_FLOAT="float";
-    private static final String THING_TYPE_INTEGER="integer";
-    private static final String THING_TYPE_STRING="string";
+    private static final String THING_TYPE_FLOAT = "float";
+    private static final String THING_TYPE_INTEGER = "integer";
+    private static final String THING_TYPE_STRING = "string";
 
     private MessageManager mMessageManager;
     private DataManager mDataManager;
@@ -339,7 +339,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
         return false;
     }
 
-    private void registerConfigurator(){
+    private void registerConfigurator() {
         if (registerConfiguratorNode() && registerConfiguratorThing()) {
 
             if (Constant.DEBUG) {
@@ -386,7 +386,6 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
         ThingDataType getDataType = ThingDataType.STRING;
 
         String[] getSensorType = SensorType.getInstance(appContext).getSensorType(mMessageManager.getSavedThing(mRegisterNode.getNodeID(), getThingLabel));
-
         String thingTypeString = null;
         String thingVendorString = null;
         String thingType;
@@ -419,6 +418,8 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                         null
                 );
             }
+        }else {
+            Log.e(TAG, "Not Regisger ");
         }
 
         if (mRegisterThing != null) {
@@ -432,6 +433,8 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                 mRegisterThing.setConnected(true, "");
                 return true;
             }
+        }else {
+            Log.e(TAG,"Thing   Null.");
         }
         return false;
 
@@ -493,7 +496,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
      * Listener information, "synchronized"
      */
     private synchronized List<Thing> getEveryThing(Node mNode) {
-        if (mNode!=null && mNode.isRegistered() && mNode.getEveryThing().size() != 0) {
+        if (mNode != null && mNode.isRegistered() && mNode.getEveryThing().size() != 0) {
             return mNode.getEveryThing();
         }
         return null;
