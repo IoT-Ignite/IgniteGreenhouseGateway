@@ -7,10 +7,6 @@ import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.activities.MainActivity;
 
-/**
- * Created by dorukgezici on 22/06/2017.
- */
-
 public class BootReceiver extends BroadcastReceiver {
     private static final String TAG = BootReceiver.class.getSimpleName();
     @Override

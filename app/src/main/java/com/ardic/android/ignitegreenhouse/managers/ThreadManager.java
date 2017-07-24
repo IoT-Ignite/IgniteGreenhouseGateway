@@ -6,8 +6,8 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.constants.Constant;
-import com.ardic.android.ignitegreenhouse.operations.NodeThingOperations;
-import com.ardic.android.ignitegreenhouse.operations.ThreadOperations;
+import com.ardic.android.ignitegreenhouse.utils.NodeThingUtils;
+import com.ardic.android.ignitegreenhouse.utils.ThreadUtils;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -22,16 +22,22 @@ public class ThreadManager {
     private static final String TAG = ThreadManager.class.getSimpleName();
 
     private static ThreadManager INSTANCE = null;
-    private NodeThingOperations mNodeThingOperations;
+    private NodeThingUtils mNodeThingUtils;
     private Context mContext;
 
-    private Map<String, ThreadOperations> threadControl = new ArrayMap<>();
+    /**It contains threads created for each sensor.
+     * Format;
+     * Key: "NodeName:ThingName"
+     * Value: "Thread".
+     * It provides control by "node name" and "thing name" in this view
+     */
+    private Map<String, ThreadUtils> threadControl = new ArrayMap<>();
 
 
     private ThreadManager(Context context) {
         mContext = context;
         if (context != null) {
-            mNodeThingOperations = NodeThingOperations.getInstance(mContext);
+            mNodeThingUtils = NodeThingUtils.getInstance(mContext);
         }
     }
 
@@ -42,16 +48,24 @@ public class ThreadManager {
         return INSTANCE;
     }
 
+    /**
+     * "Preference" also records all sensors that are not in the "threadControl"
+     */
     public void threadManager() {
-        Map<String, ?> getAllSensor = mNodeThingOperations.getSavedAllThing();
+        /**Retrieve all data stored in "preference"*/
+        Map<String, ?> getAllSensor = mNodeThingUtils.getSavedAllThing();
         Set keys = getAllSensor.keySet();
+
+        /**It checks to see if he has already been registered*/
         if (!threadControl.containsKey(keys)) {
             for (Iterator i = keys.iterator(); i.hasNext(); ) {
                 String key = (String) i.next();
-
                 /**This control is used to separate the thread type from the sensor type*/
                 if (!key.matches(Constant.THREAD_CONTROL_REGEXP) && key.length() != 2) {
-                    threadControl.put(key, new ThreadOperations(mContext));
+
+                    /**Creates a new thread and registers it as "nodename: thingname"
+                     * of type "map" so that it is easy to check later*/
+                    threadControl.put(key, new ThreadUtils(mContext));
                 }
             }
         } else {
@@ -61,6 +75,7 @@ public class ThreadManager {
         }
     }
 
+    /**"Node name" and "thing name", and delete the "thread" in this information.*/
     public void killThread(String nodeName, String thingName) {
         String threadKey = null;
         if (!TextUtils.isEmpty(nodeName) && !TextUtils.isEmpty(thingName)) {
@@ -72,23 +87,31 @@ public class ThreadManager {
         }
     }
 
+    /**Delete all "threads"*/
     public void killAllThread() {
         threadControl.clear();
     }
 
+    /**Gives the number of active threads*/
     public int getThreadControlSize() {
         return threadControl.size();
     }
 
-    public Map<String, ThreadOperations> getRunThread() {
-        Map<String, ThreadOperations> threadControlKey = threadControl;
+    /**Returns a copy of "thread" back to "map"*/
+    public Map<String, ThreadUtils> getRunThread() {
+        Map<String, ThreadUtils> threadControlKey = threadControl;
         return threadControlKey;
     }
 
-    public ThreadOperations getThreadOperation(String threadKey) {
-        return threadControl.get(threadKey);
+    /**Return the active "thread" class*/
+    public ThreadUtils getThreadOperation(String threadKey) {
+        if (threadControl.containsKey(threadKey)) {
+            return threadControl.get(threadKey);
+        }
+        return null;
     }
 
+    /**Check whether the given name is a thread*/
     public boolean isThread(String threadKey) {
         return threadControl.containsKey(threadKey);
     }

@@ -4,8 +4,8 @@ import android.content.Context;
 
 import com.ardic.android.ignitegreenhouse.constants.Constant;
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
-import com.ardic.android.ignitegreenhouse.operations.NodeThingOperations;
-import com.ardic.android.ignitegreenhouse.operations.SensorTypeOperations;
+import com.ardic.android.ignitegreenhouse.utils.NodeThingUtils;
+import com.ardic.android.ignitegreenhouse.utils.SensorTypeUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,30 +24,16 @@ public class MessageManager {
      * Example     : "GreenHouse1:Temperature" - "f4030687"
      */
 
-
-    /**
-     * Statics :
-     */
-
-    /**
-     * They declare the "key" values in the incoming "json" format
-     */
-
-    private static final String REMOVE_ALL_DEVICE_STRING = "removeAllDevice";
-    private static final String CONFIGURATION_NODE_STRING = "Configurator";
-    private static final String CONFIGURATION_THING_STRING = "Configurator Thing";
-
-
     private Context mContext;
     private IotIgniteHandler mIotIgniteHandler;
-    private SensorTypeOperations mSensorTypeOperations;
+    private SensorTypeUtils mSensorTypeUtils;
     private static MessageManager INSTANCE = null;
 
     private MessageManager(Context context) {
         mContext = context;
         if (context != null) {
             mIotIgniteHandler = IotIgniteHandler.getInstance(mContext);
-            mSensorTypeOperations = SensorTypeOperations.getInstance(mContext);
+            mSensorTypeUtils = SensorTypeUtils.getInstance(mContext);
             parseSensorJson(Constant.ADD_STATIC_THING_TYPE);
         }
     }
@@ -64,8 +50,8 @@ public class MessageManager {
      * Send the incoming message to process
      */
     public void receivedConfigMessage(String receivedNode, String receivedThing, String receivedMessage) {
-        if (receivedNode.equals(CONFIGURATION_NODE_STRING)) {
-            if (receivedThing.equals(CONFIGURATION_THING_STRING)) {
+        if (receivedNode.equals(Constant.CONFIGURATION_NODE_NAME)) {
+            if (receivedThing.equals(Constant.CONFIGURATION_THING_NAME)) {
                 /**
                  * The incoming "node" and "thing" are checked.
                  * The data is being sent to the "parseSensorJson" function for processing
@@ -91,15 +77,15 @@ public class MessageManager {
              */
             if (mGetConfigurationJson != null) {
                 if (mGetConfigurationJson.has(Constant.ADD_NEW_NODE_THING_JSON_KEY)) {
-                    NodeThingOperations.getInstance(mContext).parseAddJson(mGetConfigurationJson);
+                    NodeThingUtils.getInstance(mContext).parseAddJson(mGetConfigurationJson);
                 }
 
                 /**Used to reset the information on the whole device.
                  * The user will not be open.
                  */
-                if (mGetConfigurationJson.has(REMOVE_ALL_DEVICE_STRING)) {
-                    if (mGetConfigurationJson.getBoolean(REMOVE_ALL_DEVICE_STRING)) {
-                        NodeThingOperations.getInstance(mContext).removeSavedAllThing();
+                if (mGetConfigurationJson.has(Constant.REMOVE_ALL_DEVICE_JSON_KEY)) {
+                    if (mGetConfigurationJson.getBoolean(Constant.REMOVE_ALL_DEVICE_JSON_KEY)) {
+                        NodeThingUtils.getInstance(mContext).removeSavedAllThing();
                     }
                 }
 
@@ -109,22 +95,26 @@ public class MessageManager {
                 if (mGetConfigurationJson.has(Constant.REMOVE_THING_JSON_KEY)) {
                     JSONObject removeThing = mGetConfigurationJson.getJSONObject(Constant.REMOVE_THING_JSON_KEY);
                     removeThing.getString(Constant.NODE_ID_JSON_KEY);
-                    NodeThingOperations.getInstance(mContext).removeSavedThing(removeThing.getString(Constant.NODE_ID_JSON_KEY), removeThing.getString(Constant.THING_LABEL_JSON_KEY));
+                    NodeThingUtils.getInstance(mContext).removeSavedThing(removeThing.getString(Constant.NODE_ID_JSON_KEY), removeThing.getString(Constant.THING_LABEL_JSON_KEY));
                 }
 
                 /**Used to add new sensor type.*/
                 if (mGetConfigurationJson.has(Constant.REMOVE_THING_TYPE)) {
-                    mSensorTypeOperations.removeThingType(mGetConfigurationJson);
+                    mSensorTypeUtils.removeThingType(mGetConfigurationJson);
                 }
 
                 /**Used to remove sensor type.*/
                 if (mGetConfigurationJson.has(Constant.ADD_NEW_THING_TYPE_JSON_KEY)) {
-                    mSensorTypeOperations.addSensorType(mGetConfigurationJson);
+                    mSensorTypeUtils.addSensorType(mGetConfigurationJson);
                 }
             }
 
         } catch (JSONException e) {
-            mIotIgniteHandler.sendConfiguratorThingMessage(Constant.RESPONSE_CREATE_MESSAGE_FORMAT_ERROR);
+            try {
+                mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(new JSONObject().put(Constant.RESPONSE_ERROR,new JSONObject().put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY,Constant.RESPONSE_CREATE_MESSAGE_FORMAT_ERROR))));
+            } catch (JSONException e1) {
+                e1.printStackTrace();
+            }
             e.printStackTrace();
         }
     }

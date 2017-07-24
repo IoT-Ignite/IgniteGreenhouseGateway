@@ -1,4 +1,4 @@
-package com.ardic.android.ignitegreenhouse.operations;
+package com.ardic.android.ignitegreenhouse.utils;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -17,9 +17,9 @@ import com.ardic.android.ignitegreenhouse.constants.Constant;
  * Created by acel on 7/7/17.
  */
 
-public class ThreadOperations extends Thread {
+public class ThreadUtils extends Thread {
 
-    private static final String TAG = ThreadOperations.class.getSimpleName();
+    private static final String TAG = ThreadUtils.class.getSimpleName();
     private Handler sendDataHandler;
     private String getNodeName;
     private String getThingName;
@@ -36,7 +36,7 @@ public class ThreadOperations extends Thread {
 
     private static final long CONFIG_READ_DELAY_TIME = 60000;
 
-    private Handler configReadHandler ;
+    private Handler configReadHandler;
 
     private BroadcastReceiver getIgniteConfig = new BroadcastReceiver() {
         @Override
@@ -55,7 +55,7 @@ public class ThreadOperations extends Thread {
                     getMessageFlag = false;
                     if (broadCastFlag) {
                         getDelayTime = (IotIgniteHandler.getInstance(mContext).getConfigurationTime(getNodeName + ":" + getThingName));
-                        if (getDelayTime == -5 || getDelayTime == -1 ) {
+                        if (getDelayTime == -5 || getDelayTime == -1) {
                             configReadHandler.postDelayed(configRead, CONFIG_READ_DELAY_TIME);
                         }
                         broadCastFlag = false;
@@ -71,21 +71,6 @@ public class ThreadOperations extends Thread {
         }
     };
 
-    public ThreadOperations(Context context) {
-        mContext = context;
-        mIotIgniteHandler = IotIgniteHandler.getInstance(mContext);
-
-        sendDataHandler = new Handler(Looper.getMainLooper());
-
-        configReadHandler = new Handler(Looper.getMainLooper());
-        LocalBroadcastManager.getInstance(context).registerReceiver(getIgniteConfig,
-                new IntentFilter(Constant.INTENT_FILTER_CONFIG));
-        broadCastFlag=true;
-
-        this.run();
-    }
-
-
     private Runnable configRead = new Runnable() {
         @Override
         public void run() {
@@ -96,6 +81,19 @@ public class ThreadOperations extends Thread {
         }
     };
 
+    public ThreadUtils(Context context) {
+        mContext = context;
+        mIotIgniteHandler = IotIgniteHandler.getInstance(mContext);
+
+        sendDataHandler = new Handler(Looper.getMainLooper());
+
+        configReadHandler = new Handler(Looper.getMainLooper());
+        LocalBroadcastManager.getInstance(context).registerReceiver(getIgniteConfig,
+                new IntentFilter(Constant.INTENT_FILTER_CONFIG));
+        broadCastFlag = true;
+
+        this.run();
+    }
 
     public void parseData(String nodeName, String getThingName, String getValue) {
         if (Constant.DEBUG) {
@@ -109,6 +107,13 @@ public class ThreadOperations extends Thread {
         this.getMessageFlag = true;
     }
 
+    public void stopThread() {
+        getDelayTime = 0;
+        sendDataHandler.removeCallbacks(sendDataRunnable);
+        sendDataHandler = null;
+        this.interrupt();
+    }
+
     @Override
     public void run() {
         super.run();
@@ -117,11 +122,4 @@ public class ThreadOperations extends Thread {
         }
     }
 
-
-    public void stopThread() {
-        getDelayTime = 0;
-        sendDataHandler.removeCallbacks(sendDataRunnable);
-        sendDataHandler = null;
-        this.interrupt();
-    }
 }

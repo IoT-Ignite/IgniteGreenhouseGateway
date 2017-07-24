@@ -151,7 +151,6 @@ public class UartManager {
             @Override
             public void run() {
                 if (mUartDevice != null) {
-                    // Loop until there is no more data in the RX buffer.
                     try {
                         final byte[] buffer = new byte[CHUNK_SIZE];
                         int read;
@@ -161,8 +160,6 @@ public class UartManager {
                             /** Read Data */
                             String incomingData = new String(buffer);
                             String controlComingData = null;
-
-                          //  Log.e(TAG, "GET UART DATA 1: " +incomingData );
 
                             /** For Control True Data*/
                             int beginCharacterIndex = incomingData.indexOf(GET_BEGIN_CHARACTER);

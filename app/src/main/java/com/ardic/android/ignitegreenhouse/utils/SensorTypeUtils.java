@@ -1,4 +1,4 @@
-package com.ardic.android.ignitegreenhouse.operations;
+package com.ardic.android.ignitegreenhouse.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -17,25 +17,18 @@ import org.json.JSONObject;
  * Created by acel on 7/14/17.
  */
 
-public class SensorTypeOperations {
+public class SensorTypeUtils {
 
-    private static final String TAG = SensorTypeOperations.class.getSimpleName();
-    private static SensorTypeOperations INSTANCE = null;
+    private static final String TAG = SensorTypeUtils.class.getSimpleName();
+    private static SensorTypeUtils INSTANCE = null;
 
     private SharedPreferences sensorCodePreferences;
     private SharedPreferences.Editor sensorCodeEditor;
 
-
-    private static final String ERROR_RESPONSE_STRING = "errorNewThingResponse";
-    private static final String DESCRIPTION_STRING = "description";
-    private static final String VALUE_AVAILABLE__ERROR_STRING = "Value Available";
-    private static final String VALUE_EMPTY_ERROR_STRING = "The submitted parameters can not be empty";
-    private static final String REMOVED_THING_TYPE_RESPONSE = "removedThingType";
-
     private Context mContext;
     private IotIgniteHandler mIotIgniteHandler;
 
-    private SensorTypeOperations(Context context) {
+    private SensorTypeUtils(Context context) {
         if (!context.equals(null)) {
             mContext = context;
             mIotIgniteHandler = IotIgniteHandler.getInstance(mContext);
@@ -44,16 +37,14 @@ public class SensorTypeOperations {
         }
     }
 
-    public static synchronized SensorTypeOperations getInstance(Context context) {
+    public static synchronized SensorTypeUtils getInstance(Context context) {
         if (INSTANCE == null) {
-            INSTANCE = new SensorTypeOperations(context);
+            INSTANCE = new SensorTypeUtils(context);
         }
         return INSTANCE;
     }
 
-    /**
-     *
-     */
+
     public void addSensorType(JSONObject addObject) {
         if (Constant.DEBUG) {
             Log.i(TAG, "Get new Sensor " + addObject.toString());
@@ -87,17 +78,22 @@ public class SensorTypeOperations {
                                 if (Constant.DEBUG) {
                                     Log.e(TAG, "<" + thingCode + "> Value Available !");
                                 }
-                                JSONObject responseCreateNewSensorFalse = new JSONObject().put(ERROR_RESPONSE_STRING, new JSONObject().put(Constant.THING_CODE_JSON_KEY, thingCode).put(Constant.THING_SPECIFIC_JSON_KEY, thingSpecific).put(DESCRIPTION_STRING, VALUE_AVAILABLE__ERROR_STRING));
+                                JSONObject responseCreateNewSensorFalse = new JSONObject().put(Constant.RESPONSE_NEW_THING_ERROR_JSON_KEY, new JSONObject()
+                                        .put(Constant.THING_CODE_JSON_KEY, thingCode)
+                                        .put(Constant.THING_SPECIFIC_JSON_KEY, thingSpecific)
+                                        .put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY, Constant.RESPONSE_VALUE_AVAILABLE_JSON_VALUE)
+                                        .put(Constant.MESSAGE_ID_JSON_KEY,""));
                                 mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(responseCreateNewSensorFalse));
                             }
                         } else {
                             if (Constant.DEBUG) {
                                 Log.e(TAG, "The submitted parameters can not be empty!");
                             }
-                            JSONObject responseCreateNewSensorFalse = new JSONObject().put(ERROR_RESPONSE_STRING, new JSONObject()
+                            JSONObject responseCreateNewSensorFalse = new JSONObject().put(Constant.RESPONSE_NEW_THING_ERROR_JSON_KEY, new JSONObject()
                                     .put(Constant.THING_CODE_JSON_KEY, thingCode)
                                     .put(Constant.THING_SPECIFIC_JSON_KEY, thingSpecific)
-                                    .put(DESCRIPTION_STRING, VALUE_EMPTY_ERROR_STRING));
+                                    .put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY, Constant.RESPONSE_VALUE_EMPTY_JSON_VALUE)
+                                    .put(Constant.MESSAGE_ID_JSON_KEY,""));
                             mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(responseCreateNewSensorFalse));
                         }
                     }
@@ -125,9 +121,10 @@ public class SensorTypeOperations {
 
 
                     mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(new JSONObject()
-                            .put(REMOVED_THING_TYPE_RESPONSE, new JSONObject()
+                            .put(Constant.RESPONSE_REMOVED_THING_TYPE_JSON_KEY, new JSONObject()
                                     .put(Constant.THING_CODE_JSON_KEY, removedTypeKey)
-                                    .put(Constant.THING_TYPE_JSON_KEY, String.valueOf(sensorCodePreferences.getString(removedTypeKey, "N/A"))))));
+                                    .put(Constant.THING_TYPE_JSON_KEY, String.valueOf(sensorCodePreferences.getString(removedTypeKey, "N/A")))
+                                    .put(Constant.MESSAGE_ID_JSON_KEY,""))));
 
                     sensorCodeEditor.remove(removedTypeKey);
                     sensorCodeEditor.commit();

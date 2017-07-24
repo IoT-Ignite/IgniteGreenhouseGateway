@@ -34,7 +34,7 @@ public class MainService extends Service {
     private BroadcastReceiver igniteStatusMessage = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            getIgniteStatus = intent.getBooleanExtra(Constant.IGNITE_STATUS_BROADCAST, false);
+            getIgniteStatus = intent.getBooleanExtra(Constant.INTENT_FILTER_IGNITE_STATUS_VALUE_NAME, false);
             if (Constant.DEBUG) {
                 Log.i(TAG, "Ignite Status : " + getIgniteStatus);
             }
