@@ -92,7 +92,7 @@ public class ThreadUtils extends Thread {
                 new IntentFilter(Constant.INTENT_FILTER_CONFIG));
         broadCastFlag = true;
 
-        this.run();
+        this.start();
     }
 
     public void parseData(String nodeName, String getThingName, String getValue) {

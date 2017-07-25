@@ -11,7 +11,6 @@ android {
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
-
     signingConfigs {
         release {
             storeFile file(RELEASE_STORE_FILE)
@@ -43,6 +42,13 @@ repositories {
     }
     maven {
         url "https://repo.iot-ignite.com/content/repositories/releases"
+    }
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectName", "IgniteGreenhouse"
+        property "sonar.projectKey", "org.sonarqube:java-gradle-simple"
     }
 }
 

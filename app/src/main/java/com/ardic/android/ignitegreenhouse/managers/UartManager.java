@@ -132,7 +132,7 @@ public class UartManager {
             try {
                 mUartDevice.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.e(TAG,"Error : " + e.toString());
             }
              finally {
                 mUartDevice = null;
@@ -192,17 +192,17 @@ public class UartManager {
                                         }
                                     }
                                 } catch (JSONException e) {
-                                    e.printStackTrace();
+                                    Log.e(TAG,"Error : " + e.toString());
                                 }
                             }
                         }
                     } catch (IOException e1) {
-                        e1.printStackTrace();
+                        Log.e(TAG,"Error : " + e1.toString());
                     }
                 }
             }
         });
-        transferUartDataThread.run();
+        transferUartDataThread.start();
 
     }
 }

@@ -42,7 +42,9 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
     private Context appContext;
     private Handler igniteWatchdog = new Handler();
 
-    /**Node & Thing*/
+    /**
+     * Node & Thing
+     */
     private Node mConfiguratorNode;
     private Thing mConfiguratorThing;
 
@@ -187,7 +189,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                     NodeThingUtils.getInstance(appContext).removeSavedThing(s, s1);
                 }
             });
-            removeThingThread.run();
+            removeThingThread.start();
 
             Thread killAllThread = new Thread(new Runnable() {
                 @Override
@@ -195,7 +197,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                     ThreadManager.getInstance(appContext).killThread(s, s1);
                 }
             });
-            killAllThread.run();
+            killAllThread.start();
 
         }
         registerConfigurator();
@@ -247,7 +249,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                 }
             }
         } catch (AuthenticationException e) {
-            e.printStackTrace();
+            Log.e(TAG,"Error : " +e.toString());
         }
     }
 
@@ -321,7 +323,6 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
 
     private void registerConfigurator() {
         if (registerConfiguratorNode() && registerConfiguratorThing()) {
-
             if (Constant.DEBUG) {
                 Log.i(TAG, "Configurator Node and Configurator Thing Created");
             }
@@ -365,41 +366,44 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
     public boolean registerThing(String getThingLabel) {
         ThingDataType getDataType = ThingDataType.STRING;
 
-        String[] getSensorType = SensorTypeUtils.getInstance(appContext).getSensorType(NodeThingUtils.getInstance(appContext).getSavedThing(mRegisterNode.getNodeID(), getThingLabel));
-        String thingTypeString = null;
-        String thingVendorString = null;
-        String thingType;
+        if (mRegisterNode != null) {
+            String[] getSensorType = SensorTypeUtils.getInstance(appContext).getSensorType(NodeThingUtils.getInstance(appContext).getSavedThing(mRegisterNode.getNodeID(), getThingLabel));
 
-        if (getSensorType != null) {
-            thingTypeString = getSensorType[0];
-            thingVendorString = getSensorType[1];
-            thingType = getSensorType[2];
-            if (thingType == Constant.THING_TYPE_FLOAT) {
-                getDataType = ThingDataType.FLOAT;
-            } else if (thingType == Constant.THING_TYPE_INTEGER) {
-                getDataType = ThingDataType.INTEGER;
-            } else if (thingType == Constant.THING_TYPE_STRING) {
-                getDataType = ThingDataType.STRING;
+            String thingTypeString = null;
+            String thingVendorString = null;
+            String thingType;
+
+            if (getSensorType != null) {
+                thingTypeString = getSensorType[0];
+                thingVendorString = getSensorType[1];
+                thingType = getSensorType[2];
+                if (thingType == Constant.THING_TYPE_FLOAT) {
+                    getDataType = ThingDataType.FLOAT;
+                } else if (thingType == Constant.THING_TYPE_INTEGER) {
+                    getDataType = ThingDataType.INTEGER;
+                } else if (thingType == Constant.THING_TYPE_STRING) {
+                    getDataType = ThingDataType.STRING;
+                }
+            }
+
+
+            if (mRegisterNode != null && mRegisterNode.isRegistered()) {
+                if (!TextUtils.isEmpty(thingTypeString) && !TextUtils.isEmpty(thingVendorString)) {
+                    mRegisterThing = mRegisterNode.createThing(
+                            getThingLabel,
+                            new ThingType(
+                                    thingTypeString,
+                                    thingVendorString,
+                                    getDataType
+                            ),
+                            ThingCategory.EXTERNAL,
+                            true,
+                            this,
+                            null
+                    );
+                }
             }
         }
-
-        if (mRegisterNode != null && mRegisterNode.isRegistered()) {
-            if (!TextUtils.isEmpty(thingTypeString) && !TextUtils.isEmpty(thingVendorString)) {
-                mRegisterThing = mRegisterNode.createThing(
-                        getThingLabel,
-                        new ThingType(
-                                thingTypeString,
-                                thingVendorString,
-                                getDataType
-                        ),
-                        ThingCategory.EXTERNAL,
-                        true,
-                        this,
-                        null
-                );
-            }
-        }
-
         if (mRegisterThing != null) {
             if (Constant.DEBUG) {
                 Log.i(TAG, "Creating Thing ");
@@ -464,7 +468,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                 }
             }
         });
-        sendDataThread.run();
+        sendDataThread.start();
     }
 
     /**
@@ -491,12 +495,14 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                         }
                     }
                 }
-                mNode.unregister();
+                if (mNode != null) {
+                    mNode.unregister();
+                }
             }
 
             registerConfigurator();
         } catch (AuthenticationException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error : " + e.toString());
         }
     }
 
@@ -516,7 +522,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                 }
             }
         } catch (AuthenticationException e) {
-            e.printStackTrace();
+            Log.e(TAG,"Error : " +e.toString());
         }
         return null;
     }
@@ -554,11 +560,11 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                     }
                     registerConfigurator();
                 } catch (AuthenticationException e) {
-                    e.printStackTrace();
+                    Log.e(TAG,"Error : " +e.toString());
                 }
             }
         });
-        updateListenerThread.run();
+        updateListenerThread.start();
 
     }
 
@@ -581,7 +587,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                 }
             }
         } catch (AuthenticationException e) {
-            e.printStackTrace();
+            Log.e(TAG,"Error : " +e.toString());
         }
         return -5;
     }
@@ -591,11 +597,11 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
         try {
             for (Node mNode : IotIgniteManager.getNodeList()) {
                 if (getEveryThing(mNode) != null) {
-                   mNode.unregister();
+                    mNode.unregister();
                 }
             }
         } catch (AuthenticationException e1) {
-            e1.printStackTrace();
+            Log.e(TAG,"Error : " +e1.toString());
         }
     }
 
@@ -611,7 +617,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
                 }
             }
         } catch (AuthenticationException e1) {
-            e1.printStackTrace();
+            Log.e(TAG,"Error : " +e1.toString());
         }
     }
 

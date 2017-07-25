@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.TextView;
 
 import com.ardic.android.ignitegreenhouse.R;
 import com.ardic.android.ignitegreenhouse.services.MainService;
@@ -13,7 +12,7 @@ public class MainActivity extends Activity {
 
     private static final String TAG = "MainActivity";
 
-    private TextView mTempTextView;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,7 +27,6 @@ public class MainActivity extends Activity {
         /**
          * Init UI Components
          */
-        initUIComponents();
     }
 
     @Override
@@ -37,8 +35,5 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
-    private void initUIComponents() {
-        mTempTextView = (TextView) findViewById(R.id.tempTextView);
-    }
 
 }

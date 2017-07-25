@@ -5,6 +5,8 @@ package com.ardic.android.ignitegreenhouse.constants;
  */
 
 public class Constant {
+
+
     /**
      * This is defined for turning on and off the logs used in the program.
      */
@@ -116,7 +118,7 @@ public class Constant {
      * }
      * }
      */
-    public static final String REMOVE_THING_JSON_KEY = "removeThing";
+    public static final String REMOVE_THING_JSON_KEY = "";
     /**public static final String NODE_ID_JSON_KEY = "nodeId";*/
     /**public static final String THING_LABEL_JSON_KEY = "thingId";*/
 
@@ -141,7 +143,7 @@ public class Constant {
     public static final String RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_BEEN_REGISTERED_JSON_VALUE = "100";//"The received data have already been registered. Please delete first !";//100
     public static final String RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_SENSOR_TYPE_JSON_VALUE = "101";//"We have not found your sensor system"; Sensor typenot found
     public static final String RESPONSE_VALUE_AVAILABLE_JSON_VALUE = "102";//"Value Available"; // Not found Thing
-    public static final String RESPONSE_VALUE_EMPTY_JSON_VALUE = "103";//"The submitted parameters can not be empty";
+    public static final String RESPONSE_VALUE_EMPTY_JSON_VALUE = "103"; //"The submitted parameters can not be empty";
     public static final String RESPONSE_REMOVE_ALL_COMPONENT_JSON_VALUE = "104";//"All Sensor - Type - Thread";
     public static final String RESPONSE_CREATE_MESSAGE_FORMAT_ERROR = "105"; // Format Error
     public static final String RESPONSE_NULL_MESSAGE_ID_JSON_VALUE ="106"; // Null Messaj Id
@@ -181,4 +183,8 @@ public class Constant {
 
     /**String to appear when disconnect*/
     public static final String APPLICATION_DESTROYED_STRING = "Application Destroyed";
+
+    private Constant(){
+// Default
+    }
 }

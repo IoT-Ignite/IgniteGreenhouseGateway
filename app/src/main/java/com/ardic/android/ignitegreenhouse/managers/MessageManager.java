@@ -1,6 +1,7 @@
 package com.ardic.android.ignitegreenhouse.managers;
 
 import android.content.Context;
+import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.constants.Constant;
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
@@ -113,9 +114,9 @@ public class MessageManager {
             try {
                 mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(new JSONObject().put(Constant.RESPONSE_ERROR,new JSONObject().put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY,Constant.RESPONSE_CREATE_MESSAGE_FORMAT_ERROR))));
             } catch (JSONException e1) {
-                e1.printStackTrace();
+                Log.e(TAG,"Error : " + e1.toString());
             }
-            e.printStackTrace();
+            Log.e(TAG,"Error : " + e.toString());
         }
     }
 }

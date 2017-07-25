@@ -54,7 +54,7 @@ public class ThreadManager {
     public void threadManager() {
         /**Retrieve all data stored in "preference"*/
         Map<String, ?> getAllSensor = mNodeThingUtils.getSavedAllThing();
-        Set keys = getAllSensor.keySet();
+        Set<String> keys = getAllSensor.keySet();
 
         /**It checks to see if he has already been registered*/
         if (!threadControl.containsKey(keys)) {

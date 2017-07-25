@@ -29,7 +29,7 @@ public class SensorTypeUtils {
     private IotIgniteHandler mIotIgniteHandler;
 
     private SensorTypeUtils(Context context) {
-        if (!context.equals(null)) {
+        if (context!=null) {
             mContext = context;
             mIotIgniteHandler = IotIgniteHandler.getInstance(mContext);
             sensorCodePreferences = PreferenceManager.getDefaultSharedPreferences(context);
@@ -43,7 +43,6 @@ public class SensorTypeUtils {
         }
         return INSTANCE;
     }
-
 
     public void addSensorType(JSONObject addObject) {
         if (Constant.DEBUG) {
@@ -59,13 +58,20 @@ public class SensorTypeUtils {
                 for (int sensorNumber = 0; sensorNumber < newSensorSize; sensorNumber++) {
                     JSONObject addNewThing = new JSONObject(String.valueOf(addThingArray.getJSONObject(sensorNumber)));
                     if (!TextUtils.isEmpty(addNewThing.toString()) && addNewThing.has(Constant.THING_CODE_JSON_KEY) && addNewThing.has(Constant.THING_SPECIFIC_JSON_KEY)) {
+
                         JSONObject thingSpecific = addNewThing.getJSONObject(Constant.THING_SPECIFIC_JSON_KEY);
                         String thingCode = addNewThing.getString(Constant.THING_CODE_JSON_KEY);
                         String thingId = thingSpecific.getString(Constant.THING_LABEL_JSON_KEY);
                         String thingTypeString = thingSpecific.getString(Constant.THING_TYPE_STRING_JSON_KEY);
                         String thingVendor = thingSpecific.getString(Constant.THING_VENDOR_JSON_KEY);
                         String thingType = thingSpecific.getString(Constant.THING_TYPE_JSON_KEY);
-                        if (!TextUtils.isEmpty(thingCode) && !TextUtils.isEmpty(thingId) && !TextUtils.isEmpty(thingTypeString) && !TextUtils.isEmpty(thingVendor) && !TextUtils.isEmpty(thingType)) {
+
+                        if (!TextUtils.isEmpty(thingCode) &&
+                                !TextUtils.isEmpty(thingId) &&
+                                !TextUtils.isEmpty(thingTypeString) &&
+                                !TextUtils.isEmpty(thingVendor) &&
+                                !TextUtils.isEmpty(thingType)) {
+
                             if (!sensorCodePreferences.contains(thingCode)) {
                                 sensorCodeEditor.putString(thingCode, thingSpecific.toString());
                                 sensorCodeEditor.commit();
@@ -101,7 +107,7 @@ public class SensorTypeUtils {
             }
         } catch (JSONException e) {
             mIotIgniteHandler.sendConfiguratorThingMessage("\"error\":\"Error new thing\"");
-            e.printStackTrace();
+            Log.e(TAG,"Error : " + e.toString());
         }
 
     }
@@ -132,7 +138,7 @@ public class SensorTypeUtils {
 
             }
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG,"Error : " + e.toString());
         }
 
     }
@@ -146,7 +152,7 @@ public class SensorTypeUtils {
                     String[] sensorTypeArray = {getSensorType.getString("thingTypeString"), getSensorType.getString(Constant.THING_VENDOR_JSON_KEY), getSensorType.getString("thingType")};
                     return sensorTypeArray;
                 } catch (JSONException e) {
-                    e.printStackTrace();
+                    Log.e(TAG,"Error : " + e.toString());
                 }
             }
         }

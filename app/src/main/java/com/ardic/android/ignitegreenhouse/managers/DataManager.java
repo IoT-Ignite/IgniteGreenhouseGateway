@@ -82,6 +82,6 @@ public class DataManager {
                 }
             }
         });
-        parseDataThread.run();
+        parseDataThread.start();
     }
 }

@@ -89,7 +89,7 @@ public class NodeThingUtils {
                                 .put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY, Constant.RESPONSE_NULL_MESSAGE_ID_JSON_VALUE))));
             }
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG,"Error : " + e.toString());
         }
     }
 
@@ -128,9 +128,9 @@ public class NodeThingUtils {
                                 .put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY,Constant.RESPONSE_CREATE_MESSAGE_FORMAT_ERROR)
                                 .put(Constant.MESSAGE_ID_JSON_KEY, messageId))));
                     } catch (JSONException e1) {
-                        e1.printStackTrace();
+                        Log.e(TAG,"Error : " + e1.toString());
                     }
-                    e.printStackTrace();
+                    Log.e(TAG,"Error : " + e.toString());
                 }
             } else {
                 try {
@@ -166,9 +166,9 @@ public class NodeThingUtils {
                                 .put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY,Constant.RESPONSE_CREATE_MESSAGE_FORMAT_ERROR)
                                 .put(Constant.MESSAGE_ID_JSON_KEY, messageId))));
                     } catch (JSONException e1) {
-                        e1.printStackTrace();
+                        Log.e(TAG,"Error : " + e1.toString());
                     }
-                    e.printStackTrace();
+                    Log.e(TAG,"Error : " + e.toString());
                 }
                 if (Constant.DEBUG) {
                     Log.i(TAG, "The received thing have already been registered. Please delete first !");
@@ -211,7 +211,7 @@ public class NodeThingUtils {
                         .put(Constant.MESSAGE_ID_JSON_KEY, ""));
                 mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(removeThingJson));
             } catch (JSONException e) {
-                e.printStackTrace();
+                Log.e(TAG,"Error : " + e.toString());
             }
         }
     }
@@ -233,7 +233,7 @@ public class NodeThingUtils {
                     .put(Constant.MESSAGE_ID_JSON_KEY, "");
             mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(removeAllThing));
         } catch (JSONException e) {
-            e.printStackTrace();
+            Log.e(TAG,"Error : " + e.toString());
         }
 
 
@@ -246,7 +246,7 @@ public class NodeThingUtils {
         String[] keysOther = new String[sensors.getAll().size()];
         for (Iterator i = keys.iterator(); i.hasNext(); ) {
             String key = (String) i.next();
-            String value = (String) getAllSensor.get(key);
+            String value = String.valueOf(getAllSensor.get(key)); // todo bak
             if (value.equals(thingCode)) {
                 keysOther[counter] = key;
                 counter++;
@@ -294,7 +294,7 @@ public class NodeThingUtils {
                             .put(Constant.RESPONSE_REMOVE_NODE_JSON_KEY, getNode)
                             .put(Constant.MESSAGE_ID_JSON_KEY, "")));
                 } catch (JSONException e) {
-                    e.printStackTrace();
+                    Log.e(TAG,"Error : " + e.toString());
                 }
             }
         }
