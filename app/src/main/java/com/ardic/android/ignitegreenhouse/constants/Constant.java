@@ -139,14 +139,22 @@ public class Constant {
 
     /**
      * Response Value
+     * 100 : The received data have already been registered. Please delete first !
+     * 101 : We have not found your sensor system. Sensor type not found
+     * 102 : Value Available. Not found Thing
+     * 103 : The submitted parameters can not be empty
+     * 104 : Removed all Sensor - Type - Thread
+     * 105 : Format Error
+     * 106 : Null Message ID
      */
-    public static final String RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_BEEN_REGISTERED_JSON_VALUE = "100";//"The received data have already been registered. Please delete first !";//100
-    public static final String RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_SENSOR_TYPE_JSON_VALUE = "101";//"We have not found your sensor system"; Sensor typenot found
-    public static final String RESPONSE_VALUE_AVAILABLE_JSON_VALUE = "102";//"Value Available"; // Not found Thing
-    public static final String RESPONSE_VALUE_EMPTY_JSON_VALUE = "103"; //"The submitted parameters can not be empty";
-    public static final String RESPONSE_REMOVE_ALL_COMPONENT_JSON_VALUE = "104";//"All Sensor - Type - Thread";
-    public static final String RESPONSE_CREATE_MESSAGE_FORMAT_ERROR = "105"; // Format Error
-    public static final String RESPONSE_NULL_MESSAGE_ID_JSON_VALUE ="106"; // Null Messaj Id
+    public static final String RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_BEEN_REGISTERED_JSON_VALUE = "100";
+    public static final String RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_SENSOR_TYPE_JSON_VALUE = "101";
+    public static final String RESPONSE_VALUE_AVAILABLE_JSON_VALUE = "102";
+    public static final String RESPONSE_VALUE_EMPTY_JSON_VALUE = "103";
+    public static final String RESPONSE_REMOVE_ALL_COMPONENT_JSON_VALUE = "104";
+    public static final String RESPONSE_CREATE_MESSAGE_FORMAT_ERROR = "105";
+    public static final String RESPONSE_NULL_MESSAGE_ID_JSON_VALUE ="106";
+
 
     /**
      * This "json key" deletes all node, thing, thing type found in the device and stops active threads.

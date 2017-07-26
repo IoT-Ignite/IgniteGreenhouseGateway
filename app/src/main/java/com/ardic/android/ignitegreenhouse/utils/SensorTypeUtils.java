@@ -20,7 +20,7 @@ import org.json.JSONObject;
 public class SensorTypeUtils {
 
     private static final String TAG = SensorTypeUtils.class.getSimpleName();
-    private static SensorTypeUtils INSTANCE = null;
+    private static SensorTypeUtils instance = null;
 
     private SharedPreferences sensorCodePreferences;
     private SharedPreferences.Editor sensorCodeEditor;
@@ -38,10 +38,10 @@ public class SensorTypeUtils {
     }
 
     public static synchronized SensorTypeUtils getInstance(Context context) {
-        if (INSTANCE == null) {
-            INSTANCE = new SensorTypeUtils(context);
+        if (instance == null) {
+            instance = new SensorTypeUtils(context);
         }
-        return INSTANCE;
+        return instance;
     }
 
     public void addSensorType(JSONObject addObject) {
@@ -107,7 +107,7 @@ public class SensorTypeUtils {
             }
         } catch (JSONException e) {
             mIotIgniteHandler.sendConfiguratorThingMessage("\"error\":\"Error new thing\"");
-            Log.e(TAG,"Error : " + e.toString());
+            Log.e(TAG,"addSensorType Error : " + e);
         }
 
     }
@@ -138,7 +138,7 @@ public class SensorTypeUtils {
 
             }
         } catch (JSONException e) {
-            Log.e(TAG,"Error : " + e.toString());
+            Log.e(TAG,"removeObject Json Error : " + e);
         }
 
     }
@@ -149,10 +149,9 @@ public class SensorTypeUtils {
             if (sensorCodePreferences.contains(parseSensorCode)) {
                 try {
                     JSONObject getSensorType = new JSONObject(sensorCodePreferences.getString(parseSensorCode, "{\"null\":true}"));
-                    String[] sensorTypeArray = {getSensorType.getString("thingTypeString"), getSensorType.getString(Constant.THING_VENDOR_JSON_KEY), getSensorType.getString("thingType")};
-                    return sensorTypeArray;
+                    return new String[]{getSensorType.getString("thingTypeString"), getSensorType.getString(Constant.THING_VENDOR_JSON_KEY), getSensorType.getString("thingType")};
                 } catch (JSONException e) {
-                    Log.e(TAG,"Error : " + e.toString());
+                    Log.e(TAG,"getSensorType Json Error : " + e);
                 }
             }
         }

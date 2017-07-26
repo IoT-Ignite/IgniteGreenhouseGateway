@@ -21,7 +21,7 @@ public class ThreadManager {
 
     private static final String TAG = ThreadManager.class.getSimpleName();
 
-    private static ThreadManager INSTANCE = null;
+    private static ThreadManager instance = null;
     private NodeThingUtils mNodeThingUtils;
     private Context mContext;
 
@@ -42,10 +42,10 @@ public class ThreadManager {
     }
 
     public static synchronized ThreadManager getInstance(Context context) {
-        if (INSTANCE == null) {
-            INSTANCE = new ThreadManager(context);
+        if (instance == null) {
+            instance = new ThreadManager(context);
         }
-        return INSTANCE;
+        return instance;
     }
 
     /**
@@ -53,11 +53,11 @@ public class ThreadManager {
      */
     public void threadManager() {
         /**Retrieve all data stored in "preference"*/
-        Map<String, ?> getAllSensor = mNodeThingUtils.getSavedAllThing();
+        Map<String, String> getAllSensor = mNodeThingUtils.getSavedAllThing();
         Set<String> keys = getAllSensor.keySet();
 
         /**It checks to see if he has already been registered*/
-        if (!threadControl.containsKey(keys)) {
+        if (!threadControl.containsKey(String.valueOf(keys))) {
             for (Iterator i = keys.iterator(); i.hasNext(); ) {
                 String key = (String) i.next();
                 /**This control is used to separate the thread type from the sensor type*/
@@ -92,15 +92,13 @@ public class ThreadManager {
         threadControl.clear();
     }
 
-    /**Gives the number of active threads*/
-    public int getThreadControlSize() {
-        return threadControl.size();
-    }
 
-    /**Returns a copy of "thread" back to "map"*/
-    public Map<String, ThreadUtils> getRunThread() {
-        Map<String, ThreadUtils> threadControlKey = threadControl;
-        return threadControlKey;
+
+    /**Gives the number of active threads and size*/
+    public void threadStatusLog(){
+        Log.i(TAG, "All Run Thread Size : " + threadControl.size() +
+                "\nAll Run Thread : " + threadControl);
+
     }
 
     /**Return the active "thread" class*/
@@ -114,5 +112,13 @@ public class ThreadManager {
     /**Check whether the given name is a thread*/
     public boolean isThread(String threadKey) {
         return threadControl.containsKey(threadKey);
+    }
+
+    public boolean controlThread(String threadKey){
+        boolean status = false;
+        if (isThread(threadKey) && getThreadOperation(threadKey) != null){
+            status= true;
+        }
+        return status;
     }
 }

@@ -11,8 +11,11 @@ public class BootReceiver extends BroadcastReceiver {
     private static final String TAG = BootReceiver.class.getSimpleName();
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.i(TAG,"Boot broadcast received!! Starting application");
-        Intent applicationIntent = new Intent(context, MainActivity.class);
-        context.startActivity(applicationIntent);
+
+        if(intent.getAction().equals(Intent.ACTION_BOOT_COMPLETED)) {
+            Log.i(TAG, "Boot broadcast received!! Starting application");
+            Intent applicationIntent = new Intent(context, MainActivity.class);
+            context.startActivity(applicationIntent);
+        }
     }
 }

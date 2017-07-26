@@ -30,7 +30,7 @@ public class NodeThingUtils {
     private SharedPreferences sensors;
     private SharedPreferences.Editor sensorsEditor;
 
-    private static NodeThingUtils INSTANCE = null;
+    private static NodeThingUtils instance = null;
 
     private NodeThingUtils(Context context) {
         mContext = context;
@@ -42,10 +42,10 @@ public class NodeThingUtils {
     }
 
     public static synchronized NodeThingUtils getInstance(Context context) {
-        if (INSTANCE == null) {
-            INSTANCE = new NodeThingUtils(context);
+        if (instance == null) {
+            instance = new NodeThingUtils(context);
         }
-        return INSTANCE;
+        return instance;
     }
 
     public void parseAddJson(JSONObject getAddJson) {
@@ -89,7 +89,7 @@ public class NodeThingUtils {
                                 .put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY, Constant.RESPONSE_NULL_MESSAGE_ID_JSON_VALUE))));
             }
         } catch (JSONException e) {
-            Log.e(TAG,"Error : " + e.toString());
+            Log.e(TAG,"parseAddJson Error : " + e);
         }
     }
 
@@ -101,21 +101,21 @@ public class NodeThingUtils {
                         "\nThing : " + getThing +
                         "\nThing Label : " + getThingLabel);
             }
-            getNode = getNode.replace(" ", "");
-            getThingLabel = getThingLabel.replace(" ", "");
+            String getNodeNotSpace= getNode.replace(" ", "");
+            String getThingLabelNotSpace = getThingLabel.replace(" ", "");
 
-            if (!sensors.contains(getNode + ":" + getThingLabel) && SensorTypeUtils.getInstance(mContext).getSensorType(getThing) != null) {
-                sensorsEditor.putString(getNode + ":" + getThingLabel, getThing);
+            if (!sensors.contains(getNodeNotSpace + ":" + getThingLabelNotSpace) && SensorTypeUtils.getInstance(mContext).getSensorType(getThing).length>0) {
+                sensorsEditor.putString(getNodeNotSpace + ":" + getThingLabelNotSpace, getThing);
                 sensorsEditor.commit();
                 if (Constant.DEBUG) {
-                    Log.i(TAG, getNode + " Node has been added " + getThing + " with the number " + getThingLabel + " thing.");
+                    Log.i(TAG, getNodeNotSpace + " Node has been added " + getThing + " with the number " + getThingLabelNotSpace + " thing.");
                 }
-                mIotIgniteHandler.registerNode(getNode);
-                mIotIgniteHandler.registerThing(getThingLabel);
+                mIotIgniteHandler.registerNode(getNodeNotSpace);
+                mIotIgniteHandler.registerThing(getThingLabelNotSpace);
                 try {
                     JSONObject returnCreateTrue = new JSONObject().put(Constant.RESPONSE_CREATE_SENSOR_JSON_KEY, new JSONObject().put(Constant.RESPONSE_CREATE_NODE_JSON_KEY, true).put(Constant.RESPONSE_CREATE_THING_JSON_KEY, true));
-                    returnCreateTrue.put(Constant.NODE_ID_JSON_KEY, getNode);
-                    returnCreateTrue.put(Constant.THING_LABEL_JSON_KEY, getThingLabel);
+                    returnCreateTrue.put(Constant.NODE_ID_JSON_KEY, getNodeNotSpace);
+                    returnCreateTrue.put(Constant.THING_LABEL_JSON_KEY, getThingLabelNotSpace);
                     returnCreateTrue.put(Constant.THING_CODE_JSON_KEY, getThing);
                     returnCreateTrue.put(Constant.MESSAGE_ID_JSON_KEY, messageId);
 
@@ -128,33 +128,33 @@ public class NodeThingUtils {
                                 .put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY,Constant.RESPONSE_CREATE_MESSAGE_FORMAT_ERROR)
                                 .put(Constant.MESSAGE_ID_JSON_KEY, messageId))));
                     } catch (JSONException e1) {
-                        Log.e(TAG,"Error : " + e1.toString());
+                        Log.e(TAG,"sendConfiguratorThingMessage Json Error : " + e1);
                     }
-                    Log.e(TAG,"Error : " + e.toString());
+                    Log.e(TAG,"returnCreateTrue Json Error : " + e);
                 }
             } else {
                 try {
-                    if (sensors.contains(getNode + ":" + getThingLabel)) {
+                    if (sensors.contains(getNodeNotSpace + ":" + getThingLabelNotSpace)) {
                         JSONObject returnCreateFalse = new JSONObject().put(Constant.RESPONSE_CREATE_SENSOR_JSON_KEY, new JSONObject()
                                 .put(Constant.RESPONSE_CREATE_NODE_JSON_KEY, false)
                                 .put(Constant.RESPONSE_CREATE_THING_JSON_KEY, false)
                                 .put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY, Constant.RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_BEEN_REGISTERED_JSON_VALUE));
 
-                        returnCreateFalse.put(Constant.NODE_ID_JSON_KEY, getNode);
-                        returnCreateFalse.put(Constant.THING_LABEL_JSON_KEY, getThingLabel);
+                        returnCreateFalse.put(Constant.NODE_ID_JSON_KEY, getNodeNotSpace);
+                        returnCreateFalse.put(Constant.THING_LABEL_JSON_KEY, getThingLabelNotSpace);
                         returnCreateFalse.put(Constant.THING_LABEL_JSON_KEY, getThing);
                         returnCreateFalse.put(Constant.MESSAGE_ID_JSON_KEY, messageId);
 
                         mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(returnCreateFalse));
                     }
-                    if (SensorTypeUtils.getInstance(mContext).getSensorType(getThing) == null) {
+                    if (SensorTypeUtils.getInstance(mContext).getSensorType(getThing).length > 0) {
                         JSONObject returnCreateFalse = new JSONObject().put(Constant.RESPONSE_CREATE_SENSOR_JSON_KEY, new JSONObject()
                                 .put(Constant.RESPONSE_CREATE_NODE_JSON_KEY, false)
                                 .put(Constant.RESPONSE_CREATE_THING_JSON_KEY, false)
                                 .put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY, Constant.RESPONSE_CREATE_MESSAGE_DESCRIPTIONS_SENSOR_TYPE_JSON_VALUE));
 
-                        returnCreateFalse.put(Constant.NODE_ID_JSON_KEY, getNode);
-                        returnCreateFalse.put(Constant.THING_LABEL_JSON_KEY, getThingLabel);
+                        returnCreateFalse.put(Constant.NODE_ID_JSON_KEY, getNodeNotSpace);
+                        returnCreateFalse.put(Constant.THING_LABEL_JSON_KEY, getThingLabelNotSpace);
                         returnCreateFalse.put(Constant.THING_LABEL_JSON_KEY, getThing);
                         returnCreateFalse.put(Constant.MESSAGE_ID_JSON_KEY, messageId);
 
@@ -166,9 +166,9 @@ public class NodeThingUtils {
                                 .put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY,Constant.RESPONSE_CREATE_MESSAGE_FORMAT_ERROR)
                                 .put(Constant.MESSAGE_ID_JSON_KEY, messageId))));
                     } catch (JSONException e1) {
-                        Log.e(TAG,"Error : " + e1.toString());
+                        Log.e(TAG,"sendConfiguratorThingMessage Json Error : " + e1);
                     }
-                    Log.e(TAG,"Error : " + e.toString());
+                    Log.e(TAG,"returnCreateFalse Json Error : " + e);
                 }
                 if (Constant.DEBUG) {
                     Log.i(TAG, "The received thing have already been registered. Please delete first !");
@@ -186,8 +186,8 @@ public class NodeThingUtils {
 
     }
 
-    public Map<String, ?> getSavedAllThing() {
-        return sensors.getAll();
+    public Map<String, String> getSavedAllThing() {
+        return (Map<String, String>) sensors.getAll();
     }
 
     public void removeSavedThing(String getNode, String getThingLabel) {
@@ -211,7 +211,7 @@ public class NodeThingUtils {
                         .put(Constant.MESSAGE_ID_JSON_KEY, ""));
                 mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(removeThingJson));
             } catch (JSONException e) {
-                Log.e(TAG,"Error : " + e.toString());
+                Log.e(TAG,"removeThingJson Json Error : " + e);
             }
         }
     }
@@ -233,20 +233,18 @@ public class NodeThingUtils {
                     .put(Constant.MESSAGE_ID_JSON_KEY, "");
             mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(removeAllThing));
         } catch (JSONException e) {
-            Log.e(TAG,"Error : " + e.toString());
+            Log.e(TAG,"removeAllThing Json Error : " + e);
         }
-
-
     }
 
     public String[] getThingID(String thingCode) {
-        Map<String, ?> getAllSensor = sensors.getAll();
+        Map<String, String> getAllSensor = (Map<String, String>) sensors.getAll();
         Set keys = getAllSensor.keySet();
         int counter = 0;
         String[] keysOther = new String[sensors.getAll().size()];
         for (Iterator i = keys.iterator(); i.hasNext(); ) {
             String key = (String) i.next();
-            String value = String.valueOf(getAllSensor.get(key)); // todo bak
+            String value = String.valueOf(getAllSensor.get(String.valueOf(key)));
             if (value.equals(thingCode)) {
                 keysOther[counter] = key;
                 counter++;
@@ -260,22 +258,8 @@ public class NodeThingUtils {
 
     }
 
-    // todo : burada unutma
-    public String getSensorNode(String keyAll) {
-        Map<String, ?> getAllSensor = sensors.getAll();
-        Set keys = getAllSensor.keySet();
-        for (Iterator i = keys.iterator(); i.hasNext(); ) {
-            String key = (String) i.next();
-            String[] split = key.split(":");
-            if (split[0].equals(keyAll)) {
-                return key;
-            }
-        }
-        return null;
-    }
-
     public void removeSavedNode(String getNode) {
-        Map<String, ?> getAllSensor = sensors.getAll();
+        Map<String, String> getAllSensor = (Map<String, String>) sensors.getAll();
         Set keys = getAllSensor.keySet();
         for (Iterator i = keys.iterator(); i.hasNext(); ) {
             String key = (String) i.next();
@@ -294,7 +278,7 @@ public class NodeThingUtils {
                             .put(Constant.RESPONSE_REMOVE_NODE_JSON_KEY, getNode)
                             .put(Constant.MESSAGE_ID_JSON_KEY, "")));
                 } catch (JSONException e) {
-                    Log.e(TAG,"Error : " + e.toString());
+                    Log.e(TAG,"sendConfiguratorThingMessage Error : " + e);
                 }
             }
         }

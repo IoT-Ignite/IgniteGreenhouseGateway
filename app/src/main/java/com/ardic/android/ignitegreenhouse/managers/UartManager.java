@@ -26,7 +26,9 @@ public class UartManager {
     private UartDevice mUartDevice;
     private PeripheralManagerService peripheralManagerService = new PeripheralManagerService();
 
-    /** UART MessageManager Parameters*/
+    /**
+     * UART MessageManager Parameters
+     */
     private static final int BAUD_RATE = 9600;
     private static final int DATA_BITS = 8;
     private static final int STOP_BITS = 1;
@@ -35,14 +37,14 @@ public class UartManager {
 
     private static final String GET_ID_STRING = "id";
     private static final String GET_VALUE_STRING = "val";
-    private static final String GET_BEGIN_CHARACTER="~##";
-    private static final String GET_END_CHARACTER="!!~";
+    private static final String GET_BEGIN_CHARACTER = "~##";
+    private static final String GET_END_CHARACTER = "!!~";
 
     private Handler sendDataHandler = new Handler();
 
     private boolean getUartFlag = false;
 
-     private DataManager mDataManager;
+    private DataManager mDataManager;
 
     private long getSendDataTime = 100L;
     /**
@@ -90,7 +92,7 @@ public class UartManager {
             Log.i(TAG, "UartManager Open .");
         }
         if (context != null) {
-            mDataManager= DataManager.getInstance(context);
+            mDataManager = DataManager.getInstance(context);
             if (sendDataRunnable != null) {
                 sendDataHandler.post(sendDataRunnable);
             }
@@ -132,9 +134,8 @@ public class UartManager {
             try {
                 mUartDevice.close();
             } catch (IOException e) {
-                Log.e(TAG,"Error : " + e.toString());
-            }
-             finally {
+                Log.e(TAG, "closeUart Error : " + e);
+            } finally {
                 mUartDevice = null;
             }
         }
@@ -154,55 +155,60 @@ public class UartManager {
                     try {
                         final byte[] buffer = new byte[CHUNK_SIZE];
                         int read;
-
                         while ((read = mUartDevice.read(buffer, buffer.length)) == CHUNK_SIZE) {
                             mUartDevice.write(buffer, read);
                             /** Read Data */
                             String incomingData = new String(buffer);
-                            String controlComingData = null;
-
                             /** For Control True Data*/
                             int beginCharacterIndex = incomingData.indexOf(GET_BEGIN_CHARACTER);
                             int endCharacterIndex = incomingData.indexOf(GET_END_CHARACTER);
 
-                            if (incomingData.contains(GET_BEGIN_CHARACTER) && incomingData.contains(GET_END_CHARACTER)) {
-                                if (beginCharacterIndex < endCharacterIndex) {
-                                    /** Split */
-                                    controlComingData = incomingData.substring(beginCharacterIndex + 3, endCharacterIndex);
-                                }
-                            }
-
-                            if (controlComingData != null) {
-                                try {
-                                    /** Convert Json*/
-                                    JSONObject mDataObject = new JSONObject(controlComingData);
-                                    String getSensorId = null;
-                                    String getSensorValue = null;
-
-                                    if (mDataObject != null && mDataObject.has(GET_ID_STRING) && mDataObject.has(GET_VALUE_STRING)) {
-                                        getSensorId = mDataObject.getString(GET_ID_STRING);
-                                        getSensorValue = mDataObject.getString(GET_VALUE_STRING);
-
-                                        /** Control end Send Data Manager*/
-                                        if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(Constant.SENSOR_CONTROL_REGEXP)) {
-                                            mDataManager.parseData(getSensorId, getSensorValue);
-                                            if (Constant.DEBUG) {
-                                                Log.e(TAG, "GET UART DATA : " + getSensorId + " - " + getSensorValue);
-                                            }
-                                        }
-                                    }
-                                } catch (JSONException e) {
-                                    Log.e(TAG,"Error : " + e.toString());
-                                }
-                            }
+                            transferUartData(incomingData,beginCharacterIndex,endCharacterIndex);
                         }
                     } catch (IOException e1) {
-                        Log.e(TAG,"Error : " + e1.toString());
+                        Log.e(TAG, "transferUartData Error : " + e1);
                     }
                 }
             }
         });
         transferUartDataThread.start();
+    }
 
+    private void transferUartData(String incomingData, int beginCharacterIndex, int endCharacterIndex){
+        String controlComingData=null;
+        if (incomingData.contains(GET_BEGIN_CHARACTER)
+                && incomingData.contains(GET_END_CHARACTER)
+                && beginCharacterIndex < endCharacterIndex) {
+            /** Split */
+            controlComingData = incomingData.substring(beginCharacterIndex + 3, endCharacterIndex);
+        }
+
+        if (controlComingData != null) {
+            controlAndTransfer(controlComingData);
+        }
+    }
+
+    private void controlAndTransfer(String controlComingData){
+        try {
+            /** Convert Json*/
+            JSONObject mDataObject = new JSONObject(controlComingData);
+            String getSensorId = null;
+            String getSensorValue = null;
+
+            if (mDataObject != null && mDataObject.has(GET_ID_STRING) && mDataObject.has(GET_VALUE_STRING)) {
+                getSensorId = mDataObject.getString(GET_ID_STRING);
+                getSensorValue = mDataObject.getString(GET_VALUE_STRING);
+
+                /** Control end Send Data Manager*/
+                if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(Constant.SENSOR_CONTROL_REGEXP)) {
+                    mDataManager.parseData(getSensorId, getSensorValue);
+                    if (Constant.DEBUG) {
+                        Log.e(TAG, "GET UART DATA : " + getSensorId + " - " + getSensorValue);
+                    }
+                }
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "mDataObject Json Error : " + e);
+        }
     }
 }

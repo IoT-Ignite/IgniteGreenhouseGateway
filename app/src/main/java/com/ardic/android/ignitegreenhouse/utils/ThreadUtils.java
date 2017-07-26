@@ -46,23 +46,33 @@ public class ThreadUtils extends Thread {
     };
 
     private Runnable sendDataRunnable = new Runnable() {
+
+        private void timeOperation() {
+            if (broadCastFlag) {
+                getDelayTime = (IotIgniteHandler.getInstance(mContext).getConfigurationTime(getNodeName + ":" + getThingName));
+                if (getDelayTime == -5 || getDelayTime == -1) {
+                    configReadHandler.postDelayed(configRead, CONFIG_READ_DELAY_TIME);
+                }
+                broadCastFlag = false;
+            }
+        }
+
+        private boolean variableControl() {
+            boolean status = false;
+            if (!TextUtils.isEmpty(getNodeName) && !TextUtils.isEmpty(getThingName) && !TextUtils.isEmpty(getValue)) {
+                status = true;
+            }
+            return status;
+        }
         @Override
         public void run() {
-            if (getMessageFlag) {
-                if (!TextUtils.isEmpty(getNodeName) && !TextUtils.isEmpty(getThingName) && !TextUtils.isEmpty(getValue)) {
-                    mIotIgniteHandler.sendData(getNodeName, getThingName, getValue);
-                    getRunnableFlag = false;
-                    getMessageFlag = false;
-                    if (broadCastFlag) {
-                        getDelayTime = (IotIgniteHandler.getInstance(mContext).getConfigurationTime(getNodeName + ":" + getThingName));
-                        if (getDelayTime == -5 || getDelayTime == -1) {
-                            configReadHandler.postDelayed(configRead, CONFIG_READ_DELAY_TIME);
-                        }
-                        broadCastFlag = false;
-                    }
-                    if (Constant.DEBUG) {
-                        Log.i(TAG, "Node : " + getNodeName + " - Thing : " + getThingName + " - Value : " + getValue + " - Delay : " + getDelayTime);
-                    }
+            if (getMessageFlag && variableControl()) {
+                mIotIgniteHandler.sendData(getNodeName, getThingName, getValue);
+                getRunnableFlag = false;
+                getMessageFlag = false;
+                timeOperation();
+                if (Constant.DEBUG) {
+                    Log.i(TAG, "Node : " + getNodeName + " - Thing : " + getThingName + " - Value : " + getValue + " - Delay : " + getDelayTime);
                 }
             }
             if (sendDataHandler != null) {
@@ -94,6 +104,8 @@ public class ThreadUtils extends Thread {
 
         this.start();
     }
+
+
 
     public void parseData(String nodeName, String getThingName, String getValue) {
         if (Constant.DEBUG) {

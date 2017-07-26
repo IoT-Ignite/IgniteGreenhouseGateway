@@ -28,7 +28,7 @@ public class MessageManager {
     private Context mContext;
     private IotIgniteHandler mIotIgniteHandler;
     private SensorTypeUtils mSensorTypeUtils;
-    private static MessageManager INSTANCE = null;
+    private static MessageManager instance = null;
 
     private MessageManager(Context context) {
         mContext = context;
@@ -40,10 +40,10 @@ public class MessageManager {
     }
 
     public static synchronized MessageManager getInstance(Context context) {
-        if (INSTANCE == null) {
-            INSTANCE = new MessageManager(context);
+        if (instance == null) {
+            instance = new MessageManager(context);
         }
-        return INSTANCE;
+        return instance;
     }
 
     /**
@@ -51,14 +51,14 @@ public class MessageManager {
      * Send the incoming message to process
      */
     public void receivedConfigMessage(String receivedNode, String receivedThing, String receivedMessage) {
-        if (receivedNode.equals(Constant.CONFIGURATION_NODE_NAME)) {
-            if (receivedThing.equals(Constant.CONFIGURATION_THING_NAME)) {
-                /**
-                 * The incoming "node" and "thing" are checked.
-                 * The data is being sent to the "parseSensorJson" function for processing
-                 */
-                parseSensorJson(receivedMessage);
-            }
+        if (receivedNode.equals(Constant.CONFIGURATION_NODE_NAME) &&
+                receivedThing.equals(Constant.CONFIGURATION_THING_NAME)) {
+            /**
+             * The incoming "node" and "thing" are checked.
+             * The data is being sent to the "parseSensorJson" function for processing
+             */
+            parseSensorJson(receivedMessage);
+
         }
     }
 
@@ -84,10 +84,8 @@ public class MessageManager {
                 /**Used to reset the information on the whole device.
                  * The user will not be open.
                  */
-                if (mGetConfigurationJson.has(Constant.REMOVE_ALL_DEVICE_JSON_KEY)) {
-                    if (mGetConfigurationJson.getBoolean(Constant.REMOVE_ALL_DEVICE_JSON_KEY)) {
-                        NodeThingUtils.getInstance(mContext).removeSavedAllThing();
-                    }
+                if (mGetConfigurationJson.has(Constant.REMOVE_ALL_DEVICE_JSON_KEY) && mGetConfigurationJson.getBoolean(Constant.REMOVE_ALL_DEVICE_JSON_KEY)) {
+                    NodeThingUtils.getInstance(mContext).removeSavedAllThing();
                 }
 
                 /**Is used to delete the "node" - "thing" information recorded in the wrong format.
@@ -112,11 +110,11 @@ public class MessageManager {
 
         } catch (JSONException e) {
             try {
-                mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(new JSONObject().put(Constant.RESPONSE_ERROR,new JSONObject().put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY,Constant.RESPONSE_CREATE_MESSAGE_FORMAT_ERROR))));
+                mIotIgniteHandler.sendConfiguratorThingMessage(String.valueOf(new JSONObject().put(Constant.RESPONSE_ERROR, new JSONObject().put(Constant.RESPONSE_DESCRIPTIONS_JSON_KEY, Constant.RESPONSE_CREATE_MESSAGE_FORMAT_ERROR))));
             } catch (JSONException e1) {
-                Log.e(TAG,"Error : " + e1.toString());
+                Log.e(TAG, "sendConfiguratorThingMessage Json Error : " + e1);
             }
-            Log.e(TAG,"Error : " + e.toString());
+            Log.e(TAG, "parseSensorJson Error : " + e);
         }
     }
 }

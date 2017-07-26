@@ -21,7 +21,7 @@ public class DataManager {
     private IotIgniteHandler mIotIgniteHandler;
 
 
-    private static DataManager INSTANCE = null;
+    private static DataManager instance = null;
 
     private DataManager(Context context) {
         if (Constant.DEBUG) {
@@ -38,10 +38,10 @@ public class DataManager {
     }
 
     public static synchronized DataManager getInstance(Context context) {
-        if (INSTANCE == null) {
-            INSTANCE = new DataManager(context);
+        if (instance == null) {
+            instance = new DataManager(context);
         }
-        return INSTANCE;
+        return instance;
     }
 
 
@@ -59,29 +59,39 @@ public class DataManager {
                     if (Constant.DEBUG) {
                         Log.i(TAG, "Get Id : " + getThingCode
                                 + "\nGet Value : " + getValue);
-
                         Log.i(TAG, "All Saved Devices  Size : " + mNodeThingUtils.getSavedAllThing().size() +
                                 "\nAll Saved Devices : " + mNodeThingUtils.getSavedAllThing());
-                        Log.i(TAG, "All Run Thread Size : " + ThreadManager.getInstance(mContext).getThreadControlSize() +
-                                "\nAll Run Thread : " + ThreadManager.getInstance(mContext).getRunThread());
+                        ThreadManager.getInstance(mContext).threadStatusLog();
                     }
 
                     /**The "node & thing" names of those "thing code" subdirectories are thrown to the "getPreferencesKey" array*/
                     String[] getPreferencesKey = mNodeThingUtils.getThingID(getThingCode);
+
                     for (int i = 0; i < getPreferencesKey.length; i++) {
-                        if (!TextUtils.isEmpty(getPreferencesKey[i])) {
-                            String[] getKeySplit = getPreferencesKey[i].split(":");
-                            if (!TextUtils.isEmpty(getKeySplit[0]) && !TextUtils.isEmpty(getKeySplit[1]) && !TextUtils.isEmpty(getValue) && ThreadManager.getInstance(mContext).isThread(getPreferencesKey[i])) {
-                                /**The "getThreadOperation" function in the "ThreadManager" class will send the information of "node", "thing" and "value" to be sent to the registered "thread"*/
-                                if (ThreadManager.getInstance(mContext).getThreadOperation(getPreferencesKey[i]) != null) {
-                                    ThreadManager.getInstance(mContext).getThreadOperation(getPreferencesKey[i]).parseData(getKeySplit[0], getKeySplit[1], getValue);
-                                }
-                            }
-                        }
+                        parseDataSend(getPreferencesKey[i],getValue);
                     }
                 }
             }
         });
         parseDataThread.start();
+    }
+
+    private void parseDataSend(String getPreferencesKey , String getValue){
+        if (!TextUtils.isEmpty(getPreferencesKey)) {
+            String[] getKeySplit = getPreferencesKey.split(":");
+            if (parseData(getKeySplit[0], getKeySplit[1], getPreferencesKey)) {
+                /**The "getThreadOperation" function in the "ThreadManager" class will send the information of "node", "thing" and "value" to be sent to the registered "thread"*/
+                ThreadManager.getInstance(mContext).getThreadOperation(getPreferencesKey).parseData(getKeySplit[0], getKeySplit[1], getValue);
+            }
+        }
+    }
+
+    private boolean parseData(String getKeySplit0, String getKeySplit1, String getPreferencesKey) {
+        boolean status = false;
+        if (!TextUtils.isEmpty(getKeySplit0) && !TextUtils.isEmpty(getKeySplit1)
+                && ThreadManager.getInstance(mContext).controlThread(getPreferencesKey)) {
+            status= true;
+        }
+        return status;
     }
 }

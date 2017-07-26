@@ -21,14 +21,14 @@ public class MainService extends Service {
      * if the interface of the program is closed.
      */
 
-    private static final String TAG =MainService.class.getSimpleName();
+    private static final String TAG = MainService.class.getSimpleName();
 
     private UartManager mUartManager;
 
-    private boolean getIgniteStatus= false;
+    private boolean getIgniteStatus = false;
 
     /**
-     *It takes the "connect" method broadcast from "IoT - Ignite".
+     * It takes the "connect" method broadcast from "IoT - Ignite".
      * If "IoT - Ignite" status is "Connect", it initiates "Uart" operations.
      */
     private BroadcastReceiver igniteStatusMessage = new BroadcastReceiver() {
@@ -40,7 +40,7 @@ public class MainService extends Service {
             }
             try {
                 if (getIgniteStatus) {
-                    mUartManager=new UartManager(getApplicationContext());
+                    mUartManager = new UartManager(getApplicationContext());
                     mUartManager.openUart();
                 }
             } catch (IOException e) {
@@ -53,7 +53,7 @@ public class MainService extends Service {
     };
 
     public MainService() {
-
+//Actions to be taken when first opened
     }
 
     @Override
