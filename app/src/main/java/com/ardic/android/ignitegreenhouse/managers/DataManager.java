@@ -1,43 +1,36 @@
 package com.ardic.android.ignitegreenhouse.managers;
 
 import android.content.Context;
-import android.support.v4.util.ArrayMap;
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.ignite.IotIgniteHandler;
-import com.ardic.android.ignitegreenhouse.constants.Constant;
-
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import com.ardic.android.ignitegreenhouse.utils.LogUtils;
+import com.ardic.android.ignitegreenhouse.utils.NodeThingUtils;
 
 /**
- * Created by acel on 7/7/17.
+ * Created by Mert Acel on 7/7/17.
  */
 
 public class DataManager {
     private static final String TAG = DataManager.class.getSimpleName();
-    private static final String THREAD_CONTROL_REGEXP="[0-9a-fA-F][0-9a-fA-F]";
 
     private Context mContext;
 
-    private MessageManager mMessageManager;
+    private NodeThingUtils mNodeThingUtils;
     private IotIgniteHandler mIotIgniteHandler;
 
-    private Map<String, ThreadManager> threadControl = new ArrayMap<>();
 
     private static DataManager INSTANCE = null;
 
     private DataManager(Context context) {
-        if (Constant.DEBUG) {
-            Log.i(TAG, "Get DataManager...");
-        }
+        LogUtils.logger(TAG, "Get DataManager...");
+
         if (context != null) {
             mContext = context;
-            mMessageManager = MessageManager.getInstance(mContext);
+
             mIotIgniteHandler = IotIgniteHandler.getInstance(mContext);
-            threadManager();
+            mNodeThingUtils = NodeThingUtils.getInstance(mContext);
+            ThreadManager.getInstance(mContext).threadManager();
             mIotIgniteHandler.updateListener();
         }
     }
@@ -50,71 +43,53 @@ public class DataManager {
     }
 
 
+    /**
+     * "ParseData" is the function that sends the "Action Message" in
+     * the "Configurator Thing" to the relevant "Manager" according to its content and
+     * allows the specified operations to be performed in the message.
+     */
     public void parseData(final String getThingCode, final String getValue) {
         Thread parseDataThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                if (!TextUtils.isEmpty(getThingCode) && !TextUtils.isEmpty(getValue)) {
+                /**Incoming value control*/
+                if (!TextUtils.isEmpty(getThingCode) && !TextUtils.isEmpty(getValue) && mNodeThingUtils.getAllSavedThing() != null) {
+                    LogUtils.logger(TAG, "Get Id : " + getThingCode
+                            + "\nGet Value : " + getValue);
+                    LogUtils.logger(TAG, "All Saved Devices  Size : " + mNodeThingUtils.getAllSavedThing().size() +
+                            "\nAll Saved Devices : " + mNodeThingUtils.getAllSavedThing());
+                    ThreadManager.getInstance(mContext).threadStatusLog();
 
-                    if (Constant.DEBUG) {
-                        Log.i(TAG, "Get Id : " + getThingCode
-                                + "\nGet Value : " + getValue);
+                    if (mNodeThingUtils.getThingIdByCode(getThingCode) != null) {
+                        /**The "node & thing" names of those "thing code" subdirectories are thrown to the "getPreferencesKey" array*/
+                        String[] getPreferencesKey = mNodeThingUtils.getThingIdByCode(getThingCode);
 
-                        Log.i(TAG, "All Saved Devices  Size : " + mMessageManager.getSavedAllThing().size() +
-                                "\nAll Saved Devices : " + mMessageManager.getSavedAllThing());
-                        Log.i(TAG, "All Run Thread Size : " + threadControl.size() +
-                                "\nAll Run Thread : " + threadControl);
-                    }
-
-                    String[] getPreferencesKey = mMessageManager.getThingID(getThingCode);
-                    for (int i = 0; i < getPreferencesKey.length; i++) {
-                        if (!TextUtils.isEmpty(getPreferencesKey[i])) {
-                            String[] getKeySplit = getPreferencesKey[i].split(":");
-                            if (!TextUtils.isEmpty(getKeySplit[0]) && !TextUtils.isEmpty(getKeySplit[1]) && !TextUtils.isEmpty(getValue) && threadControl.containsKey(getPreferencesKey[i])) {
-                                threadControl.get(getPreferencesKey[i]).parseData(getKeySplit[0], getKeySplit[1], getValue);
-                            }
+                        for (int i = 0; i < getPreferencesKey.length; i++) {
+                            dataSend(getPreferencesKey[i], getValue);
                         }
                     }
                 }
             }
         });
-        parseDataThread.run();
+        parseDataThread.start();
     }
 
-
-    public void threadManager() {
-        Map<String, ?> getAllSensor = mMessageManager.getSavedAllThing();
-        Set keys = getAllSensor.keySet();
-        if (!threadControl.containsKey(keys)) {
-            for (Iterator i = keys.iterator(); i.hasNext(); ) {
-                String key = (String) i.next();
-
-                /**This control is used to separate the thread type from the sensor type*/
-                if (!key.matches(THREAD_CONTROL_REGEXP) && key.length() != 2) {
-                    threadControl.put(key, new ThreadManager(mContext));
-                }
-            }
-        } else {
-            if (Constant.DEBUG) {
-                Log.e(TAG, "There is a thread named" + keys);
+    private void dataSend(String getPreferencesKey, String getValue) {
+        if (!TextUtils.isEmpty(getPreferencesKey)) {
+            String[] getKeySplit = getPreferencesKey.split(":");
+            if (controlData(getKeySplit[0], getKeySplit[1], getPreferencesKey)) {
+                /**The "getThreadOperation" function in the "ThreadManager" class will send the information of "node", "thing" and "value" to be sent to the registered "thread"*/
+                ThreadManager.getInstance(mContext).getThreadOperation(getPreferencesKey).parseData(getKeySplit[0], getKeySplit[1], getValue);
             }
         }
     }
 
-    public void killThread(String nodeName, String thingName) {
-        String threadKey = null;
-        if (!TextUtils.isEmpty(nodeName) && !TextUtils.isEmpty(thingName)) {
-            threadKey = nodeName + ":" + thingName;
+    private boolean controlData(String getKeySplit0, String getKeySplit1, String getPreferencesKey) {
+        boolean status = false;
+        if (!TextUtils.isEmpty(getKeySplit0) && !TextUtils.isEmpty(getKeySplit1)
+                && ThreadManager.getInstance(mContext).controlThreadState(getPreferencesKey)) {
+            status = true;
         }
-
-        if (!TextUtils.isEmpty(threadKey) && threadControl.containsKey(threadKey)) {
-            threadControl.get(threadKey).stopThread();
-            threadControl.remove(threadKey);
-        }
+        return status;
     }
-
-    public void killAllThread() {
-        threadControl.clear();
-    }
-
 }
