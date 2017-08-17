@@ -2,16 +2,15 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.0"
+    buildToolsVersion "26.0.0"
     defaultConfig {
         applicationId "com.ardic.android.ignitegreenhouse"
         minSdkVersion 21
-        targetSdkVersion 25
+        targetSdkVersion 26
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
-
     signingConfigs {
         release {
             storeFile file(RELEASE_STORE_FILE)
@@ -46,9 +45,16 @@ repositories {
     }
 }
 
+sonarqube {
+    properties {
+        property "sonar.projectName", "IgniteGreenhouse"
+        property "sonar.projectKey", "org.sonarqube:java-gradle-simple"
+    }
+}
+
 dependencies {
     provided 'com.google.android.things:androidthings:0.4-devpreview'
     compile 'com.google.code.gson:gson:2.7'
     compile 'com.ardic.android:IoTIgnite:0.7'
-    compile 'com.android.support:appcompat-v7:25.0.0'
+    compile 'com.android.support:appcompat-v7:25.3.1'
 }

@@ -1,11 +1,11 @@
 package com.ardic.android.ignitegreenhouse.managers;
 
 import android.content.Context;
-import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.ardic.android.ignitegreenhouse.constants.Constant;
+import com.ardic.android.ignitegreenhouse.utils.LogUtils;
 import com.google.android.things.pio.PeripheralManagerService;
 import com.google.android.things.pio.UartDevice;
 import com.google.android.things.pio.UartDeviceCallback;
@@ -16,7 +16,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 
 /**
- * Created by acel on 7/3/17.
+ * Created by Mert Acel on 7/3/17.
  */
 
 public class UartManager {
@@ -26,39 +26,21 @@ public class UartManager {
     private UartDevice mUartDevice;
     private PeripheralManagerService peripheralManagerService = new PeripheralManagerService();
 
-    /** UART MessageManager Parameters*/
-    private static final int BAUD_RATE = 9600;
+    /**
+     * UART MessageManager Parameters
+     */
+    private static final int BAUD_RATE = 115200;
     private static final int DATA_BITS = 8;
     private static final int STOP_BITS = 1;
-    private static final int CHUNK_SIZE = 50;
+    private static final int CHUNK_SIZE = 31;
     private static final String DEVICE_RPI3 = "UART0";
 
     private static final String GET_ID_STRING = "id";
     private static final String GET_VALUE_STRING = "val";
-    private static final String GET_BEGIN_CHARACTER="~##";
-    private static final String GET_END_CHARACTER="!!~";
+    private static final String GET_BEGIN_CHARACTER = "~##";
+    private static final String GET_END_CHARACTER = "!!~";
 
-    private Handler sendDataHandler = new Handler();
-
-    private boolean getUartFlag = false;
-
-     private DataManager mDataManager;
-
-    private long getSendDataTime = 100L;
-    /**
-     * To send a data cloud to the configuration without
-     */
-    private Runnable sendDataRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (getUartFlag) {
-                transferUartData();
-                getUartFlag = false;
-            }
-            sendDataHandler.postDelayed(this, getSendDataTime);
-
-        }
-    };
+    private DataManager mDataManager;
 
     /**
      * Callback invoked when UART receives new incoming data.
@@ -66,18 +48,13 @@ public class UartManager {
     private UartDeviceCallback getUartCallback = new UartDeviceCallback() {
         @Override
         public boolean onUartDeviceDataAvailable(UartDevice uart) {
-            getUartFlag = true;
+            readUartData();
             return true;
         }
 
         @Override
         public void onUartDeviceError(UartDevice uart, int error) {
-            if (sendDataRunnable != null) {
-                if (Constant.DEBUG) {
-                    Log.e(TAG, uart + ": Error event " + error);
-                }
-                sendDataHandler.removeCallbacks(sendDataRunnable);
-            }
+            Log.e(TAG, uart + ": Error event " + error);
         }
     };
 
@@ -86,14 +63,9 @@ public class UartManager {
      * , define context and start sendDataRunnable
      */
     public UartManager(Context context) {
-        if (Constant.DEBUG) {
-            Log.i(TAG, "UartManager Open .");
-        }
+        LogUtils.logger(TAG, "UartManager Open .");
         if (context != null) {
-            mDataManager= DataManager.getInstance(context);
-            if (sendDataRunnable != null) {
-                sendDataHandler.post(sendDataRunnable);
-            }
+            mDataManager = DataManager.getInstance(context);
         }
     }
 
@@ -132,9 +104,8 @@ public class UartManager {
             try {
                 mUartDevice.close();
             } catch (IOException e) {
-                e.printStackTrace();
-            }
-             finally {
+                Log.e(TAG, "closeUart Error : " + e);
+            } finally {
                 mUartDevice = null;
             }
         }
@@ -146,66 +117,69 @@ public class UartManager {
      * <p>
      * Potentially long-running operation. Call from a worker thread.
      */
-    public void transferUartData() {
+    public void readUartData() {
         Thread transferUartDataThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 if (mUartDevice != null) {
-                    // Loop until there is no more data in the RX buffer.
                     try {
                         final byte[] buffer = new byte[CHUNK_SIZE];
                         int read;
-
                         while ((read = mUartDevice.read(buffer, buffer.length)) == CHUNK_SIZE) {
                             mUartDevice.write(buffer, read);
                             /** Read Data */
                             String incomingData = new String(buffer);
-                            String controlComingData = null;
-
-                          //  Log.e(TAG, "GET UART DATA 1: " +incomingData );
-
                             /** For Control True Data*/
                             int beginCharacterIndex = incomingData.indexOf(GET_BEGIN_CHARACTER);
                             int endCharacterIndex = incomingData.indexOf(GET_END_CHARACTER);
 
-                            if (incomingData.contains(GET_BEGIN_CHARACTER) && incomingData.contains(GET_END_CHARACTER)) {
-                                if (beginCharacterIndex < endCharacterIndex) {
-                                    /** Split */
-                                    controlComingData = incomingData.substring(beginCharacterIndex + 3, endCharacterIndex);
-                                }
-                            }
-
-                            if (controlComingData != null) {
-                                try {
-                                    /** Convert Json*/
-                                    JSONObject mDataObject = new JSONObject(controlComingData);
-                                    String getSensorId = null;
-                                    String getSensorValue = null;
-
-                                    if (mDataObject != null && mDataObject.has(GET_ID_STRING) && mDataObject.has(GET_VALUE_STRING)) {
-                                        getSensorId = mDataObject.getString(GET_ID_STRING);
-                                        getSensorValue = mDataObject.getString(GET_VALUE_STRING);
-
-                                        /** Control end Send Data Manager*/
-                                        if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(Constant.REGEXP_ID)) {
-                                            mDataManager.parseData(getSensorId, getSensorValue);
-                                            if (Constant.DEBUG) {
-                                                Log.e(TAG, "GET UART DATA : " + getSensorId + " - " + getSensorValue);
-                                            }
-                                        }
-                                    }
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
-                            }
+                            dataInterpretation(incomingData, beginCharacterIndex, endCharacterIndex);
                         }
                     } catch (IOException e1) {
-                        e1.printStackTrace();
+                        Log.e(TAG, "readUartData Error : " + e1);
                     }
                 }
             }
         });
-        transferUartDataThread.run();
+        transferUartDataThread.start();
+    }
 
+    private void dataInterpretation(String incomingData, int beginCharacterIndex, int endCharacterIndex) {
+        String controlComingData = null;
+        if (incomingData.contains(GET_BEGIN_CHARACTER)
+                && incomingData.contains(GET_END_CHARACTER)
+                && beginCharacterIndex < endCharacterIndex) {
+            /** Split */
+            controlComingData = incomingData.substring(beginCharacterIndex + 3, endCharacterIndex);
+        }
+
+        if (controlComingData != null) {
+            controlUartData(controlComingData);
+        }
+    }
+
+    private void controlUartData(String controlComingData) {
+        try {
+            /** Convert Json*/
+            JSONObject mDataObject = new JSONObject(controlComingData);
+            String getSensorId = null;
+            String getSensorValue = null;
+            if (mDataObject != null && mDataObject.has(GET_ID_STRING) && mDataObject.has(GET_VALUE_STRING)) {
+                getSensorId = mDataObject.getString(GET_ID_STRING);
+                getSensorValue = mDataObject.getString(GET_VALUE_STRING);
+                sendUartData(getSensorId, getSensorValue);
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "mDataObject Json Error : " + e);
+        }
+    }
+
+    private void sendUartData(String getSensorId, String getSensorValue) {
+        /** Control end Send Data Manager*/
+        if (!TextUtils.isEmpty(getSensorId) && !TextUtils.isEmpty(getSensorValue) && getSensorId.matches(Constant.Regexp.SENSOR_CONTROL)) {
+            mDataManager.parseData(getSensorId, getSensorValue);
+            LogUtils.logger(TAG, "GET UART DATA : " + getSensorId + " - " + getSensorValue);
+
+        }
     }
 }

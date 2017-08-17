@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/GreenHouseGW.iml" filepath="$PROJECT_DIR$/GreenHouseGW.iml" />
       <module fileurl="file://$PROJECT_DIR$/IgniteGreenhouse.iml" filepath="$PROJECT_DIR$/IgniteGreenhouse.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
