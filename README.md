@@ -2,9 +2,9 @@
 
 Ignite Greenhouse is an open source **ARDIC** project. The purpose of this project is to collect information on the environment and soil status in the greenhouses and inform the user in a single area.
 
-<!--Seradaki ortam ve toprak durumlarının çiftçi için önemi büyüktür. Bu ortamdaki değişiklikler, serada bulunan ürün üstünde oldukça etkilidir. Eğer bu veriler dikkate alınmazsa ürünlerin verimsiz olmasına yol açabilmektedir. -->
+**ARDIC** is publishing source codes to enable anyone to use this technology and to increase the yield of products in the greenhouse.
 
-<!--**Ignite Greenhouse** projesi bu durumların önüne geçmek için oluşturulmuştur.--> **ARDIC** is publishing source codes to enable anyone to use this technology and to increase the yield of products in the greenhouse.
+Ignite Greenhouse GitHub Page : [https://iot-ignite.github.io/IgniteGreenhouse](https://iot-ignite.github.io/IgniteGreenhouse)
 
 # Gateway App
 The codes in this section are the codes that work in **gateway**. We will talk about how to use these codes and the installation steps. After these steps, ** gateway ** will be ready for use.
