@@ -1,5 +1,3 @@
-.DS_STORE
-
 # Built application files
 *.apk
 *.ap_
@@ -19,6 +17,12 @@ out/
 .gradle/
 build/
 
+# Windows thumbnail db
+Thumbs.db
+
+# OSX files
+.DS_Store
+
 # Local configuration file (sdk path, etc)
 local.properties
 
@@ -28,30 +32,22 @@ proguard/
 # Log Files
 *.log
 
-# Android Studio Navigation editor temp files
-.navigation/
-
-# Android Studio captures folder
-captures/
-
-# Intellij
+# Android Studio
 *.iml
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/gradle.xml
-.idea/dictionaries
-.idea/libraries
+.idea
+#.idea/workspace.xml - remove # and delete .idea if it better suit your needs.
+.gradle
+build/
+.navigation
+captures/
+output.json
+
+#NDK
+obj/
+.externalNativeBuild
 
 # Keystore files
 *.jks
 
-# External native build folder generated in Android Studio 2.2 and later
-.externalNativeBuild
-
 # Google Services (e.g. APIs or Firebase)
 google-services.json
-
-# Freeline
-freeline.py
-freeline/
-freeline_project_description.json

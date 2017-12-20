@@ -79,7 +79,10 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
         public void run() {
             if (!igniteConnected) {
                 try {
-                    new IotIgniteManager.Builder().setConnectionListener(IotIgniteHandler.this).setContext(appContext).build();
+                    new IotIgniteManager.Builder().setConnectionListener(IotIgniteHandler.this)
+                            .setContext(appContext)
+                            .setLogEnabled(true)
+                            .build();
                 } catch (UnsupportedVersionException e) {
                     Log.e(TAG, "rebuildIgnite UnsupportedVersionException :" + e);
                 }
@@ -350,7 +353,7 @@ public class IotIgniteHandler implements ConnectionCallback, NodeListener, Thing
 
     private void registerThingType(String getThingLabel) {
         ThingDataType getDataType = ThingDataType.STRING;
-        if (mRegisterNode != null && NodeThingUtils.getInstance(appContext).getSavedThing(mRegisterNode.getNodeID(), getThingLabel)!=null ) {
+        if (mRegisterNode != null && NodeThingUtils.getInstance(appContext).getSavedThing(mRegisterNode.getNodeID(), getThingLabel) != null) {
             String[] getSensorType = DynamicSensorTypeUtils.getInstance(appContext).getSensorTypeByCode(NodeThingUtils.getInstance(appContext).getSavedThing(mRegisterNode.getNodeID(), getThingLabel));
 
             String thingTypeString = null;
